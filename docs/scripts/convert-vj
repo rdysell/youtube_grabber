@@ -133,6 +133,12 @@ prune_empty_dirs() {
   find "$INBOX" -depth -type d -empty ! -path "$INBOX" -delete 2>/dev/null || true
 }
 
+process_file_return() {
+  local rc="${1:-0}"
+  vj_maybe_stop_after_current "$JOB" "$LOG" "Local VJ convert"
+  return "$rc"
+}
+
 process_file() {
   local src="$1" out_name out_path archive_name archive_path parent
 
@@ -154,7 +160,7 @@ process_file() {
     log "ENCODE: $src -> $out_path"
     if ! encode_vj "$src" "$out_path"; then
       log "FAIL encode: $src"
-      return 1
+      process_file_return 1
     fi
     log "OK: $out_path"
   fi
@@ -170,7 +176,7 @@ process_file() {
 
   remove_sidecars_in_dir "$parent" ""
   vj_bump_done "$JOB"
-  return 0
+  process_file_return 0
 }
 
 main() {
@@ -189,6 +195,7 @@ main() {
   vj_state_set "$JOB" DONE "0"
   vj_state_set "$JOB" PHASE "starting"
   vj_state_set "$JOB" CURRENT ""
+  vj_state_set "$JOB" STOP_AFTER 0
 
   if ((${#files[@]} == 0)); then
     log "No video files found in $INBOX"
@@ -199,6 +206,7 @@ main() {
 
   local f
   for f in "${files[@]}"; do
+    vj_maybe_stop_after_current "$JOB" "$LOG" "Local VJ convert"
     vj_state_set "$JOB" CURRENT "$(basename "$f")"
     vj_state_set "$JOB" PHASE "processing"
     process_file "$f" || true

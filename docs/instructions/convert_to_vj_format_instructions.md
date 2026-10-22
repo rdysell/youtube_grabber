@@ -18,7 +18,8 @@ From the **repo root**:
 |---------|-----|
 | `make convert-vj` | Run convert |
 | `make convert-vj-status` | Running? progress %, current file, log tail |
-| `make convert-vj-stop` | Stop convert and child ffmpeg |
+| `make convert-vj-stop` | Stop immediately |
+| `make convert-vj-stop-next` | Finish current file, then stop |
 | `make youtube-vj` | YouTube queue (see other doc) |
 
 ```sh

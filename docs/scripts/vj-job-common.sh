@@ -120,6 +120,31 @@ vj_print_status() {
   fi
 }
 
+vj_stop_after_current_request() {
+  local job="$1" label="$2"
+  if ! vj_job_running_pid "$job" >/dev/null; then
+    echo "${label}: not running."
+    exit 1
+  fi
+  vj_state_set "$job" STOP_AFTER 1
+  echo "${label}: will stop after the current item finishes."
+}
+
+vj_maybe_stop_after_current() {
+  local job="$1" log="$2" summary_title="$3"
+  if [[ "$(vj_state_get "$job" STOP_AFTER)" != "1" ]]; then
+    return 0
+  fi
+  vj_state_set "$job" STOP_AFTER 0
+  vj_state_set "$job" PHASE "stopped_after_current"
+  vj_state_set "$job" CURRENT ""
+  {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Stop-after-current: exiting before next item."
+  } >>"$log"
+  vj_print_summary "$job" "$log" "$summary_title"
+  exit 0
+}
+
 vj_bump_done() {
   local job="$1" done total
   done=$(vj_state_get "$job" DONE)
@@ -151,6 +176,7 @@ vj_print_summary() {
   case "${phase}" in
     finished) echo "  Result:   completed" ;;
     stopped) echo "  Result:   stopped early" ;;
+    stopped_after_current) echo "  Result:   stopped after current item" ;;
     *) echo "  Result:   ${phase:-done}" ;;
   esac
   if [[ -n "$total" && "$total" =~ ^[0-9]+$ ]]; then

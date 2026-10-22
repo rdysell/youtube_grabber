@@ -22,7 +22,8 @@ From the **repo root**:
 |---------|--------|
 | `make youtube-vj` | Run batch download |
 | `make youtube-vj-status` | Running? progress %, current item, log tail |
-| `make youtube-vj-stop` | Stop batch and child yt-dlp/ffmpeg |
+| `make youtube-vj-stop` | Stop immediately |
+| `make youtube-vj-stop-next` | Finish current item, then stop |
 
 ```sh
 make youtube-vj

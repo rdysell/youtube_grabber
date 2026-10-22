@@ -74,9 +74,17 @@ remove_from_todo() {
   mv "$tmp" "$TODO"
 }
 
+download_one_return() {
+  local rc="${1:-0}"
+  vj_maybe_stop_after_current "$JOB" "$LOG" "YouTube VJ batch"
+  return "$rc"
+}
+
 download_one() {
   local group="$1" url="$2" sections="${3:-}"
   local id outfile title meta
+
+  vj_maybe_stop_after_current "$JOB" "$LOG" "YouTube VJ batch"
 
   id=$(video_id "$url")
   if [[ -z "$id" ]]; then
@@ -92,13 +100,13 @@ download_one() {
     append_done "$group" "$url" "$title" "$outfile" "$meta" "$id"
     remove_from_todo "$id"
     vj_bump_done "$JOB"
-    return 0
+    download_one_return 0
   fi
   if [[ -n "$outfile" ]]; then
     log "RE-ENCODE incomplete VJ file [$group] id=$id"
     "${HOME}/.config/yt-dlp/vj-720.sh" "$outfile" || {
       log "FAIL re-encode [$group] $url"
-      return 1
+      download_one_return 1
     }
     if is_valid_vj_output "$outfile"; then
       title=$(short_title "$url")
@@ -107,10 +115,10 @@ download_one() {
       remove_from_todo "$id"
       log "OK [$group] $outfile ($meta)"
       vj_bump_done "$JOB"
-      return 0
+      download_one_return 0
     fi
     log "FAIL still invalid after re-encode [$group] $url"
-    return 1
+    download_one_return 1
   fi
 
   mkdir -p "$BASE/$group"
@@ -122,11 +130,11 @@ download_one() {
     if ! yt-dlp --download-sections "$sections" --force-keyframes-at-cuts \
       -P "$BASE/$group" "$url" >>"$LOG" 2>&1; then
       log "FAIL [$group] $url"
-      return 1
+      download_one_return 1
     fi
   elif ! yt-dlp -P "$BASE/$group" "$url" >>"$LOG" 2>&1; then
     log "FAIL [$group] $url"
-    return 1
+    download_one_return 1
   fi
 
   outfile=$(find "$BASE/$group" -name "*${id}*.mp4" -type f 2>/dev/null | head -1)
@@ -135,7 +143,7 @@ download_one() {
   fi
   if [[ -z "$outfile" || ! -f "$outfile" ]]; then
     log "FAIL no output file [$group] $url"
-    return 1
+    download_one_return 1
   fi
 
   title=$(short_title "$url")
@@ -144,6 +152,7 @@ download_one() {
   remove_from_todo "$id"
   log "OK [$group] $outfile ($meta)"
   vj_bump_done "$JOB"
+  download_one_return 0
 }
 
 main() {
@@ -154,6 +163,7 @@ main() {
   vj_state_set "$JOB" DONE "0"
   vj_state_set "$JOB" PHASE "starting"
   vj_state_set "$JOB" CURRENT ""
+  vj_state_set "$JOB" STOP_AFTER 0
 
   : >"$LOG"
   log "VJ batch download started (${total} items)"

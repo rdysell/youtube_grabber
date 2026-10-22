@@ -8,7 +8,8 @@ Run everything from the **repo root** (`youtube_grabber/`).
 |---------|--------|
 | `make youtube-vj` | Download & encode queue (`docs/1_youtube_links_to_download.md`) |
 | `make youtube-vj-status` | Running? progress %, current URL, log tail |
-| `make youtube-vj-stop` | Stop batch + yt-dlp/ffmpeg children |
+| `make youtube-vj-stop` | Stop immediately (kills current encode) |
+| `make youtube-vj-stop-next` | Finish **current** item, then stop |
 
 - **Output:** `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube/<group>/`
 - **Log:** `~/.cache/yt-dlp/vj-batch.log`
@@ -23,7 +24,8 @@ Safe to re-run; skips files already on disk. Only **one** `make youtube-vj` at a
 |---------|--------|
 | `make convert-vj` | Convert inbox → VJ MP4 |
 | `make convert-vj-status` | Running? progress %, current file, log tail |
-| `make convert-vj-stop` | Stop convert + ffmpeg children |
+| `make convert-vj-stop` | Stop immediately |
+| `make convert-vj-stop-next` | Finish **current** file, then stop |
 
 | Folder | Role |
 |--------|------|
