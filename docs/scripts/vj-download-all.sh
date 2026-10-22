@@ -15,7 +15,7 @@ DONE="${REPO}/docs/2_youtube_links_done.md"
 
 mkdir -p "${HOME}/.cache/yt-dlp"
 
-log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG"; }
+log() { vj_log "$LOG" "$@"; }
 
 short_title() {
   yt-dlp --print "%(title)s" --no-download "$1" 2>/dev/null | head -c 120
@@ -166,6 +166,7 @@ main() {
   vj_state_set "$JOB" STOP_AFTER 0
 
   : >"$LOG"
+  vj_print_job_banner "YouTube VJ batch" "make youtube-vj-status" "$LOG"
   log "VJ batch download started (${total} items)"
 
   # Short section clips first

@@ -120,6 +120,20 @@ vj_print_status() {
   fi
 }
 
+# Append timestamped line to log file only (keeps make youtube-vj quiet on the terminal).
+vj_log() {
+  local logfile="$1"
+  shift
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >>"$logfile"
+}
+
+vj_print_job_banner() {
+  local title="$1" status_make="$2" log="$3"
+  echo "${title} running (output is in the log, not this terminal)."
+  echo "  Status: ${status_make}"
+  echo "  Log:    ${log}"
+}
+
 vj_stop_after_current_request() {
   local job="$1" label="$2"
   if ! vj_job_running_pid "$job" >/dev/null; then

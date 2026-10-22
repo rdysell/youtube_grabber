@@ -16,7 +16,7 @@ Run everything from the **repo root** (`youtube_grabber/`).
 - **State:** `~/.cache/yt-dlp/youtube-vj.{pid,state}`
 - **Details:** [docs/instructions/vj_download_instructions.md](docs/instructions/vj_download_instructions.md)
 
-Safe to re-run; skips files already on disk. Only **one** `make youtube-vj` at a time. Prints a **summary** when the run finishes (or after `-stop`).
+Safe to re-run; skips files already on disk. Only **one** `make youtube-vj` at a time. **No live log spam** in the terminal—use `make youtube-vj-status` or `tail -f` on the log file. Prints a **summary** when the run finishes (or after `-stop`).
 
 ## Local file convert
 
@@ -37,7 +37,7 @@ Safe to re-run; skips files already on disk. Only **one** `make youtube-vj` at a
 - **State:** `~/.cache/yt-dlp/convert-vj.{pid,state}`
 - **Details:** [docs/instructions/convert_to_vj_format_instructions.md](docs/instructions/convert_to_vj_format_instructions.md)
 
-Safe to re-run; skips when a valid output already exists. Prints a **summary** when the run finishes (or after `-stop`).
+Safe to re-run; skips when a valid output already exists. Use `make convert-vj-status` for progress (not streamed to the terminal). Prints a **summary** when the run finishes (or after `-stop`).
 
 ## Resource limits
 

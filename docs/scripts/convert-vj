@@ -24,7 +24,7 @@ VIDEO_EXTS='mp4|mkv|mov|avi|webm|m4v|mpg|mpeg|wmv|flv|ts|m2ts'
 
 mkdir -p "$INBOX" "$OUTBOX" "$ARCHIVE" "$CACHE"
 
-log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG"; }
+log() { vj_log "$LOG" "$@"; }
 
 is_video_file() {
   local f="$1"
@@ -181,6 +181,7 @@ process_file() {
 
 main() {
   vj_job_acquire_pid "$JOB"
+  vj_print_job_banner "Local VJ convert" "make convert-vj-status" "$LOG"
   log "convert-vj started (inbox: $INBOX)"
   local -a files=()
   while IFS= read -r -d '' f; do
