@@ -2,7 +2,7 @@
         convert-vj convert-vj-status convert-vj-stop
 
 youtube-vj:
-	@./vj-download-all.sh
+	@./vj-run-limited.sh ./vj-download-all.sh
 
 youtube-vj-status:
 	@./youtube-vj-status
@@ -11,7 +11,7 @@ youtube-vj-stop:
 	@./youtube-vj-stop
 
 convert-vj:
-	@./convert-vj
+	@./vj-run-limited.sh ./convert-vj
 
 convert-vj-status:
 	@./convert-vj-status

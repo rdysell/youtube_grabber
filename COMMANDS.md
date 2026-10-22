@@ -37,6 +37,16 @@ Safe to re-run; skips files already on disk. Only **one** `make youtube-vj` at a
 
 Safe to re-run; skips when a valid output already exists. Prints a **summary** when the run finishes (or after `-stop`).
 
+## Resource limits
+
+Each `make youtube-vj` / `make convert-vj` run is wrapped with:
+
+- **RAM:** ~**30 GiB** virtual memory ulimit (per job tree; ffmpeg exits if exceeded instead of starving the system).
+- **CPU:** ~**40%** of total cores (`ffmpeg -threads` + `cpulimit` when installed).
+
+Install stricter CPU cap: `brew install cpulimit` (otherwise `nice` + thread cap only).  
+Tunables: `docs/scripts/vj-limits.sh` (copied to `~/.config/yt-dlp/vj-limits.sh` on each run).
+
 ## Tips
 
 - **CPU:** One encode at a time is easiest on the iMac; avoid two heavy jobs together.

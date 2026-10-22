@@ -5,6 +5,8 @@ set -uo pipefail
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 # shellcheck source=vj-job-common.sh
 source "${SCRIPT_DIR}/vj-job-common.sh"
+# shellcheck source=vj-limits.sh
+source "${SCRIPT_DIR}/vj-limits.sh"
 
 ICLOUD="${HOME}/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies"
 INBOX="${ICLOUD}/Convert_these_media_files"
@@ -103,7 +105,7 @@ is_valid_vj_output() {
 encode_vj() {
   local in="$1" out="$2"
   local tmp="${CACHE}/convert-vj.$$.mp4"
-  ffmpeg -y -hide_banner -loglevel error -i "$in" \
+  vj_run_ffmpeg -y -i "$in" \
     -an \
     -vf "scale=${VJ_W}:${VJ_H}:force_original_aspect_ratio=decrease,pad=${VJ_W}:${VJ_H}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=fps='min(source_fps\,24)'" \
     -c:v libx264 -pix_fmt yuv420p -profile:v high -level:v 4.0 \

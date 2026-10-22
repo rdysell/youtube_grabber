@@ -25,6 +25,16 @@ video_id() {
   yt-dlp --print "%(id)s" --no-download "$1" 2>/dev/null
 }
 
+is_valid_vj_output() {
+  local f="$1" w h vcodec audio_n
+  [[ -f "$f" ]] || return 1
+  w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$f" 2>/dev/null) || return 1
+  h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$f" 2>/dev/null) || return 1
+  vcodec=$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of csv=p=0 "$f" 2>/dev/null) || return 1
+  audio_n=$(ffprobe -v error -select_streams a -show_entries stream=index -of csv=p=0 "$f" 2>/dev/null | wc -l | tr -d ' ')
+  [[ "$w" == "1280" && "$h" == "720" && "$vcodec" == "h264" && "$audio_n" == "0" ]]
+}
+
 file_meta() {
   local f="$1"
   local dur size
@@ -74,15 +84,33 @@ download_one() {
     return 1
   fi
 
-  if find "$BASE/$group" -name "*${id}*.mp4" -type f 2>/dev/null | grep -q .; then
+  outfile=$(find "$BASE/$group" -name "*${id}*.mp4" -type f 2>/dev/null | head -1)
+  if [[ -n "$outfile" ]] && is_valid_vj_output "$outfile"; then
     log "SKIP existing [$group] id=$id"
     title=$(short_title "$url")
-    outfile=$(find "$BASE/$group" -name "*${id}*.mp4" -type f | head -1)
     meta=$(file_meta "$outfile")
     append_done "$group" "$url" "$title" "$outfile" "$meta" "$id"
     remove_from_todo "$id"
     vj_bump_done "$JOB"
     return 0
+  fi
+  if [[ -n "$outfile" ]]; then
+    log "RE-ENCODE incomplete VJ file [$group] id=$id"
+    "${HOME}/.config/yt-dlp/vj-720.sh" "$outfile" || {
+      log "FAIL re-encode [$group] $url"
+      return 1
+    }
+    if is_valid_vj_output "$outfile"; then
+      title=$(short_title "$url")
+      meta=$(file_meta "$outfile")
+      append_done "$group" "$url" "$title" "$outfile" "$meta" "$id"
+      remove_from_todo "$id"
+      log "OK [$group] $outfile ($meta)"
+      vj_bump_done "$JOB"
+      return 0
+    fi
+    log "FAIL still invalid after re-encode [$group] $url"
+    return 1
   fi
 
   mkdir -p "$BASE/$group"
