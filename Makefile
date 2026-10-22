@@ -238,3 +238,10 @@ yt-dlp-extra: current-ejs-version .ejs-$(EJS_VERSION) $(EJS_PY_FILES) $(EJS_JS_F
 current-ejs-version:
 	rm -rf .ejs-*
 	touch .ejs-$$($(PYTHON) -c 'import sys; sys.path = [""]; from yt_dlp_ejs import version; print(version)' 2>/dev/null)
+
+# VJ media (docs/scripts)
+.PHONY: youtube-vj youtube-vj-status youtube-vj-stop \
+        convert-vj convert-vj-status convert-vj-stop
+
+youtube-vj youtube-vj-status youtube-vj-stop convert-vj convert-vj-status convert-vj-stop:
+	$(MAKE) -C docs/scripts $@

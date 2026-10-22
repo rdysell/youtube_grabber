@@ -1,0 +1,7 @@
+#!/bin/bash
+set -euo pipefail
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=vj-job-common.sh
+source "${SCRIPT_DIR}/vj-job-common.sh"
+LOG="${VJ_CACHE}/convert-vj.log"
+vj_print_status "convert-vj" "$LOG" "Local VJ convert (make convert-vj)"

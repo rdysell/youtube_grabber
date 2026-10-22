@@ -2,9 +2,14 @@
 # Batch-download VJ clips per docs/instructions/vj_download_instructions.md
 set -uo pipefail
 
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=vj-job-common.sh
+source "${SCRIPT_DIR}/vj-job-common.sh"
+
 BASE="/Users/dysell/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube"
-LOG="${HOME}/.cache/yt-dlp/vj-batch.log"
-REPO="/Volumes/Elephant/d-udda-imac/youtube_grabber"
+LOG="${VJ_CACHE}/vj-batch.log"
+REPO=$(cd "${SCRIPT_DIR}/../.." && pwd)
+JOB=youtube-vj
 TODO="${REPO}/docs/1_youtube_links_to_download.md"
 DONE="${REPO}/docs/2_youtube_links_done.md"
 
@@ -76,11 +81,14 @@ download_one() {
     meta=$(file_meta "$outfile")
     append_done "$group" "$url" "$title" "$outfile" "$meta" "$id"
     remove_from_todo "$id"
+    vj_bump_done "$JOB"
     return 0
   fi
 
   mkdir -p "$BASE/$group"
 
+  vj_state_set "$JOB" CURRENT "[$group] $url"
+  vj_state_set "$JOB" PHASE "downloading"
   log "START [$group] $url ${sections:+(sections $sections)}"
   if [[ -n "$sections" ]]; then
     if ! yt-dlp --download-sections "$sections" --force-keyframes-at-cuts \
@@ -107,11 +115,20 @@ download_one() {
   append_done "$group" "$url" "$title" "$outfile" "$meta" "$id"
   remove_from_todo "$id"
   log "OK [$group] $outfile ($meta)"
+  vj_bump_done "$JOB"
 }
 
 main() {
+  vj_job_acquire_pid "$JOB"
+  local total
+  total=$(grep -cE '^\s*download_one ' "${SCRIPT_DIR}/vj-download-all.sh" || echo 0)
+  vj_state_set "$JOB" TOTAL "$total"
+  vj_state_set "$JOB" DONE "0"
+  vj_state_set "$JOB" PHASE "starting"
+  vj_state_set "$JOB" CURRENT ""
+
   : >"$LOG"
-  log "VJ batch download started"
+  log "VJ batch download started (${total} items)"
 
   # Short section clips first
   download_one "Woods, Nature and Weather" "https://www.youtube.com/live/bMmPHGJk2hE" "*0:20-0:30" || true
@@ -142,7 +159,10 @@ main() {
   download_one "Woods, Nature and Weather" "https://youtu.be/TwXilp2mUtE" || true
   download_one "Space,Universe and stars" "https://youtu.be/ztVV54sPOns" || true
 
+  vj_state_set "$JOB" PHASE "finished"
+  vj_state_set "$JOB" CURRENT ""
   log "VJ batch download finished"
+  vj_print_summary "$JOB" "$LOG" "YouTube VJ batch"
 }
 
 main "$@"

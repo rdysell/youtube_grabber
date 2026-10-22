@@ -16,9 +16,19 @@ When a download finishes, remove its URL from `1_…` and record it in `2_…` u
 
 ## Batch script (preferred)
 
+From the **repo root**:
+
+| Command | Action |
+|---------|--------|
+| `make youtube-vj` | Run batch download |
+| `make youtube-vj-status` | Running? progress %, current item, log tail |
+| `make youtube-vj-stop` | Stop batch and child yt-dlp/ffmpeg |
+
 ```sh
-/Volumes/Elephant/d-udda-imac/youtube_grabber/docs/scripts/vj-download-all.sh
+make youtube-vj
 ```
+
+Scripts live in `docs/scripts/`. State: `~/.cache/yt-dlp/youtube-vj.{pid,state}`.
 
 - Uses `~/.config/yt-dlp/config` and post-encode `~/.config/yt-dlp/vj-720.sh`
 - Short section clips first, then shorter full videos, then long sources
@@ -60,6 +70,8 @@ yt-dlp --download-sections "*0:20-0:30" --force-keyframes-at-cuts \
 | Winter cabins, stormy ocean (no start time) | `*0:00-0:10` |
 
 `youtube.com/live/…` sections work only when YouTube serves a **finished** recording, not a live stream.
+
+Local files (not YouTube): see [convert_to_vj_format_instructions.md](./convert_to_vj_format_instructions.md) and `docs/scripts/convert-vj`.
 
 ## One-off download
 

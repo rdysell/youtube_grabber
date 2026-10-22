@@ -1,0 +1,212 @@
+#!/bin/bash
+# Convert local media in the VJ inbox to 1280x720 H.264 MP4 (see convert_to_vj_format_instructions.md).
+set -uo pipefail
+
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=vj-job-common.sh
+source "${SCRIPT_DIR}/vj-job-common.sh"
+
+ICLOUD="${HOME}/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies"
+INBOX="${ICLOUD}/Convert_these_media_files"
+OUTBOX="${ICLOUD}/Converted_media_files"
+ARCHIVE="${ICLOUD}/Converted_source_files"
+CACHE="${VJ_CACHE}"
+LOG="${CACHE}/convert-vj.log"
+JOB=convert-vj
+
+VJ_W=1280
+VJ_H=720
+RES_TAG="${VJ_W}x${VJ_H}"
+
+VIDEO_EXTS='mp4|mkv|mov|avi|webm|m4v|mpg|mpeg|wmv|flv|ts|m2ts'
+
+mkdir -p "$INBOX" "$OUTBOX" "$ARCHIVE" "$CACHE"
+
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG"; }
+
+is_video_file() {
+  local f="$1"
+  [[ -f "$f" ]] && [[ "$(basename "$f")" =~ \.(${VIDEO_EXTS})$ ]] && return 0
+  return 1
+}
+
+dot_to_underscore() {
+  local s="$1"
+  echo "$s" | tr '.' '_' | tr ' ' '_' | tr -cd '[:alnum:]_-'
+}
+
+# Baraka.1992.1080p... -> Baraka_1992_1280x720_vj.mp4
+output_name_for() {
+  local path="$1"
+  local base stem title year part
+  base=$(basename "$path")
+  stem="${base%.*}"
+  title="${stem%%.*}"
+  title=$(dot_to_underscore "$title")
+  year=""
+  IFS='.' read -ra parts <<< "$stem"
+  for part in "${parts[@]}"; do
+    if [[ "$part" =~ ^[0-9]{4}$ ]]; then
+      year="$part"
+      break
+    fi
+  done
+  if [[ -n "$year" ]]; then
+    echo "${title}_${year}_${RES_TAG}_vj.mp4"
+  else
+    echo "${title}_${RES_TAG}_vj.mp4"
+  fi
+}
+
+# Koyaanisqatsi.1982.REMASTERED... -> Koyaanisqatsi_1982_REMASTERED_1080p_vj-processed_org_file.<ext>
+archive_name_for() {
+  local path="$1"
+  local base stem ext sanitized suffix max=100
+  base=$(basename "$path")
+  ext="${base##*.}"
+  stem="${base%.*}"
+  sanitized=$(dot_to_underscore "$stem")
+  suffix="_vj-processed_org_file"
+  max=100
+  if ((${#sanitized} + ${#suffix} > max)); then
+    sanitized="${sanitized:0:max - ${#suffix}}"
+  fi
+  echo "${sanitized}${suffix}.${ext}"
+}
+
+unique_path() {
+  local dir="$1" name="$2"
+  local candidate="${dir}/${name}" n=2 base ext
+  if [[ ! -e "$candidate" ]]; then
+    echo "$candidate"
+    return
+  fi
+  base="${name%.*}"
+  ext="${name##*.}"
+  while [[ -e "${dir}/${base}_${n}.${ext}" ]]; do
+    n=$((n + 1))
+  done
+  echo "${dir}/${base}_${n}.${ext}"
+}
+
+is_valid_vj_output() {
+  local f="$1"
+  local w h vcodec audio_n
+  [[ -f "$f" ]] || return 1
+  w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$f" 2>/dev/null) || return 1
+  h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$f" 2>/dev/null) || return 1
+  vcodec=$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of csv=p=0 "$f" 2>/dev/null) || return 1
+  audio_n=$(ffprobe -v error -select_streams a -show_entries stream=index -of csv=p=0 "$f" 2>/dev/null | wc -l | tr -d ' ')
+  [[ "$w" == "$VJ_W" && "$h" == "$VJ_H" && "$vcodec" == "h264" && "$audio_n" == "0" ]]
+}
+
+encode_vj() {
+  local in="$1" out="$2"
+  local tmp="${CACHE}/convert-vj.$$.mp4"
+  ffmpeg -y -hide_banner -loglevel error -i "$in" \
+    -an \
+    -vf "scale=${VJ_W}:${VJ_H}:force_original_aspect_ratio=decrease,pad=${VJ_W}:${VJ_H}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=fps='min(source_fps\,24)'" \
+    -c:v libx264 -pix_fmt yuv420p -profile:v high -level:v 4.0 \
+    -crf 18 -preset fast \
+    -movflags +faststart \
+    "$tmp"
+  mv -f "$tmp" "$out"
+}
+
+remove_sidecars_in_dir() {
+  local dir="$1" keep="$2" f
+  for f in "$dir"/*; do
+    [[ -e "$f" ]] || continue
+    [[ -f "$f" ]] || continue
+    [[ "$f" == "$keep" ]] && continue
+    if is_video_file "$f"; then
+      continue
+    fi
+    rm -f "$f"
+    log "Removed sidecar: $f"
+  done
+}
+
+prune_empty_dirs() {
+  find "$INBOX" -depth -type d -empty ! -path "$INBOX" -delete 2>/dev/null || true
+}
+
+process_file() {
+  local src="$1" out_name out_path archive_name archive_path parent
+
+  if ! is_video_file "$src"; then
+    return 0
+  fi
+
+  out_name=$(output_name_for "$src")
+  out_path=$(unique_path "$OUTBOX" "$out_name")
+
+  if [[ -f "${OUTBOX}/${out_name}" ]] && is_valid_vj_output "${OUTBOX}/${out_name}"; then
+    log "SKIP encode (valid output exists): ${OUTBOX}/${out_name}"
+    out_path="${OUTBOX}/${out_name}"
+  elif is_valid_vj_output "$out_path"; then
+    log "SKIP encode (valid output exists): $out_path"
+  else
+    vj_state_set "$JOB" PHASE "encoding"
+    vj_state_set "$JOB" CURRENT "$(basename "$src")"
+    log "ENCODE: $src -> $out_path"
+    if ! encode_vj "$src" "$out_path"; then
+      log "FAIL encode: $src"
+      return 1
+    fi
+    log "OK: $out_path"
+  fi
+
+  parent=$(dirname "$src")
+  archive_name=$(archive_name_for "$src")
+  archive_path=$(unique_path "$ARCHIVE" "$archive_name")
+
+  if [[ -f "$src" ]]; then
+    log "ARCHIVE source -> $archive_path"
+    mv -f "$src" "$archive_path"
+  fi
+
+  remove_sidecars_in_dir "$parent" ""
+  vj_bump_done "$JOB"
+  return 0
+}
+
+main() {
+  vj_job_acquire_pid "$JOB"
+  log "convert-vj started (inbox: $INBOX)"
+  local -a files=()
+  while IFS= read -r -d '' f; do
+    files+=("$f")
+  done < <(find "$INBOX" -type f \( \
+    -iname '*.mp4' -o -iname '*.mkv' -o -iname '*.mov' -o -iname '*.avi' \
+    -o -iname '*.webm' -o -iname '*.m4v' -o -iname '*.mpg' -o -iname '*.mpeg' \
+    -o -iname '*.wmv' -o -iname '*.flv' -o -iname '*.ts' -o -iname '*.m2ts' \
+    \) -print0 2>/dev/null)
+
+  vj_state_set "$JOB" TOTAL "${#files[@]}"
+  vj_state_set "$JOB" DONE "0"
+  vj_state_set "$JOB" PHASE "starting"
+  vj_state_set "$JOB" CURRENT ""
+
+  if ((${#files[@]} == 0)); then
+    log "No video files found in $INBOX"
+    vj_state_set "$JOB" PHASE "finished"
+    vj_print_summary "$JOB" "$LOG" "Local VJ convert"
+    exit 0
+  fi
+
+  local f
+  for f in "${files[@]}"; do
+    vj_state_set "$JOB" CURRENT "$(basename "$f")"
+    vj_state_set "$JOB" PHASE "processing"
+    process_file "$f" || true
+  done
+
+  prune_empty_dirs
+  vj_state_set "$JOB" PHASE "finished"
+  vj_state_set "$JOB" CURRENT ""
+  log "convert-vj finished"
+  vj_print_summary "$JOB" "$LOG" "Local VJ convert"
+}
+
+main "$@"
