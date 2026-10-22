@@ -240,9 +240,9 @@ current-ejs-version:
 	touch .ejs-$$($(PYTHON) -c 'import sys; sys.path = [""]; from yt_dlp_ejs import version; print(version)' 2>/dev/null)
 
 # VJ media (docs/scripts)
-.PHONY: youtube-vj youtube-vj-status youtube-vj-stop youtube-vj-stop-next \
-        convert-vj convert-vj-status convert-vj-stop convert-vj-stop-next
+.PHONY: youtube-vj youtube-vj-start youtube-vj-status youtube-vj-stop youtube-vj-stop-next \
+        convert-vj convert-vj-start convert-vj-status convert-vj-stop convert-vj-stop-next
 
-youtube-vj youtube-vj-status youtube-vj-stop youtube-vj-stop-next \
-convert-vj convert-vj-status convert-vj-stop convert-vj-stop-next:
+youtube-vj youtube-vj-start youtube-vj-status youtube-vj-stop youtube-vj-stop-next \
+convert-vj convert-vj-start convert-vj-status convert-vj-stop convert-vj-stop-next:
 	$(MAKE) -C docs/scripts $@

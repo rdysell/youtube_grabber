@@ -6,7 +6,7 @@ Run everything from the **repo root** (`youtube_grabber/`).
 
 | Command | Action |
 |---------|--------|
-| `make youtube-vj` | Download & encode queue (`docs/1_youtube_links_to_download.md`) |
+| `make youtube-vj` or `make youtube-vj-start` | Download & encode queue (quiet; use status for progress) |
 | `make youtube-vj-status` | Running? progress %, current URL, log tail |
 | `make youtube-vj-stop` | Stop immediately (kills current encode) |
 | `make youtube-vj-stop-next` | Finish **current** item, then stop |
@@ -22,7 +22,7 @@ Safe to re-run; skips files already on disk. Only **one** `make youtube-vj` at a
 
 | Command | Action |
 |---------|--------|
-| `make convert-vj` | Convert inbox → VJ MP4 |
+| `make convert-vj` or `make convert-vj-start` | Convert inbox → VJ MP4 (quiet; use status for progress) |
 | `make convert-vj-status` | Running? progress %, current file, log tail |
 | `make convert-vj-stop` | Stop immediately |
 | `make convert-vj-stop-next` | Finish **current** file, then stop |

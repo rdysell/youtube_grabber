@@ -111,7 +111,7 @@ encode_vj() {
     -c:v libx264 -pix_fmt yuv420p -profile:v high -level:v 4.0 \
     -crf 18 -preset fast \
     -movflags +faststart \
-    "$tmp"
+    "$tmp" >>"$LOG" 2>&1
   mv -f "$tmp" "$out"
 }
 
