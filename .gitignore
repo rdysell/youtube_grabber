@@ -1,4 +1,5 @@
 # Config
+.env*
 *.conf
 cookies
 *cookies.txt
