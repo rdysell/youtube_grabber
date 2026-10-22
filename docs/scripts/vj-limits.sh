@@ -22,12 +22,16 @@ vj_cpulimit_value() {
 }
 
 vj_apply_shell_limits() {
+  # macOS does not allow lowering RLIMIT_AS / RLIMIT_DATA (ulimit -v / -d always
+  # fails with EINVAL). CPU caps still apply via cpulimit + ffmpeg -threads.
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    return 0
+  fi
   local mem_kb=$((VJ_MAX_RAM_GB * 1024 * 1024))
   if ulimit -v "$mem_kb" 2>/dev/null; then
-    :
-  else
-    echo "Note: could not set ${VJ_MAX_RAM_GB}G RAM ulimit (continuing)." >&2
+    return 0
   fi
+  echo "Note: could not set ${VJ_MAX_RAM_GB}G RAM ulimit on this OS (continuing)." >&2
 }
 
 vj_warn_if_no_cpulimit() {

@@ -41,8 +41,8 @@ Safe to re-run; skips when a valid output already exists. Prints a **summary** w
 
 Each `make youtube-vj` / `make convert-vj` run is wrapped with:
 
-- **RAM:** ~**30 GiB** virtual memory ulimit (per job tree; ffmpeg exits if exceeded instead of starving the system).
-- **CPU:** ~**40%** of total cores (`ffmpeg -threads` + `cpulimit` when installed).
+- **CPU:** ~**40%** of total cores (`ffmpeg -threads` + `cpulimit`).
+- **RAM:** **30 GiB** ulimit on **Linux** only. **macOS cannot set a per-process RAM cap** (Darwin ignores `ulimit -v`); rely on CPU limits and avoid running two heavy encodes at once.
 
 Install stricter CPU cap: `brew install cpulimit` (otherwise `nice` + thread cap only).  
 Tunables: `docs/scripts/vj-limits.sh` (copied to `~/.config/yt-dlp/vj-limits.sh` on each run).
