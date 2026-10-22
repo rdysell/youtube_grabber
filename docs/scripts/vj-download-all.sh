@@ -1,0 +1,148 @@
+#!/bin/bash
+# Batch-download VJ clips per docs/instructions/vj_download_instructions.md
+set -uo pipefail
+
+BASE="/Users/dysell/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube"
+LOG="${HOME}/.cache/yt-dlp/vj-batch.log"
+REPO="/Volumes/Elephant/d-udda-imac/youtube_grabber"
+TODO="${REPO}/docs/1_youtube_links_to_download.md"
+DONE="${REPO}/docs/2_youtube_links_done.md"
+
+mkdir -p "${HOME}/.cache/yt-dlp"
+
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG"; }
+
+short_title() {
+  yt-dlp --print "%(title)s" --no-download "$1" 2>/dev/null | head -c 120
+}
+
+video_id() {
+  yt-dlp --print "%(id)s" --no-download "$1" 2>/dev/null
+}
+
+file_meta() {
+  local f="$1"
+  local dur size
+  dur=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$f" 2>/dev/null || echo "?")
+  size=$(stat -f%z "$f" 2>/dev/null || echo "0")
+  local size_h
+  if command -v numfmt >/dev/null 2>&1; then
+    size_h=$(numfmt --to=iec-i --suffix=B "$size" 2>/dev/null || echo "${size} bytes")
+  else
+    size_h="${size} bytes"
+  fi
+  printf 'duration=%s size=%s' "$dur" "$size_h"
+}
+
+append_done() {
+  local group="$1" url="$2" title="$3" path="$4" meta="$5" id="$6"
+  if grep -q "\[${id}\]" "$DONE" 2>/dev/null; then
+    return 0
+  fi
+  if ! grep -q "^# ${group}$" "$DONE" 2>/dev/null; then
+    printf '\n# %s\n\n' "$group" >> "$DONE"
+  fi
+  {
+    echo "- **${title}**"
+    echo "  - URL: ${url}"
+    echo "  - Path: \`${path}\`"
+    echo "  - ${meta}"
+    echo
+  } >> "$DONE"
+}
+
+remove_from_todo() {
+  local id="$1"
+  local tmp
+  tmp=$(mktemp)
+  grep -v "$id" "$TODO" > "$tmp" || true
+  mv "$tmp" "$TODO"
+}
+
+download_one() {
+  local group="$1" url="$2" sections="${3:-}"
+  local id outfile title meta
+
+  id=$(video_id "$url")
+  if [[ -z "$id" ]]; then
+    log "SKIP (no id): $url"
+    return 1
+  fi
+
+  if find "$BASE/$group" -name "*${id}*.mp4" -type f 2>/dev/null | grep -q .; then
+    log "SKIP existing [$group] id=$id"
+    title=$(short_title "$url")
+    outfile=$(find "$BASE/$group" -name "*${id}*.mp4" -type f | head -1)
+    meta=$(file_meta "$outfile")
+    append_done "$group" "$url" "$title" "$outfile" "$meta" "$id"
+    remove_from_todo "$id"
+    return 0
+  fi
+
+  mkdir -p "$BASE/$group"
+
+  log "START [$group] $url ${sections:+(sections $sections)}"
+  if [[ -n "$sections" ]]; then
+    if ! yt-dlp --download-sections "$sections" --force-keyframes-at-cuts \
+      -P "$BASE/$group" "$url" >>"$LOG" 2>&1; then
+      log "FAIL [$group] $url"
+      return 1
+    fi
+  elif ! yt-dlp -P "$BASE/$group" "$url" >>"$LOG" 2>&1; then
+    log "FAIL [$group] $url"
+    return 1
+  fi
+
+  outfile=$(find "$BASE/$group" -name "*${id}*.mp4" -type f 2>/dev/null | head -1)
+  if [[ -z "$outfile" ]]; then
+    outfile=$(ls -t "$BASE/$group"/*.mp4 2>/dev/null | head -1)
+  fi
+  if [[ -z "$outfile" || ! -f "$outfile" ]]; then
+    log "FAIL no output file [$group] $url"
+    return 1
+  fi
+
+  title=$(short_title "$url")
+  meta=$(file_meta "$outfile")
+  append_done "$group" "$url" "$title" "$outfile" "$meta" "$id"
+  remove_from_todo "$id"
+  log "OK [$group] $outfile ($meta)"
+}
+
+main() {
+  : >"$LOG"
+  log "VJ batch download started"
+
+  # Short section clips first
+  download_one "Woods, Nature and Weather" "https://www.youtube.com/live/bMmPHGJk2hE" "*0:20-0:30" || true
+  download_one "Woods, Nature and Weather" "https://youtu.be/sGkh1W5cbH4" "*0:00-0:10" || true
+  download_one "Woods, Nature and Weather" "https://youtu.be/AsD5u6k6dKI" "*0:00-0:10" || true
+  download_one "Fireplace" "https://youtu.be/FU3ow3wS3PE" "*0:20-0:30" || true
+  download_one "Fireplace" "https://youtu.be/p-zQ5YD7wDc" "*1:00:00-1:00:10" || true
+
+  # Shorter full-length sources
+  download_one "Animals" "https://youtu.be/ak_Gk83ewLY" || true
+  download_one "Space,Universe and stars" "https://youtu.be/7kdJbeM6Ql4" || true
+  download_one "Arty" "https://youtu.be/yx0HzBiaVn4" || true
+  download_one "Abstract fluids" "https://youtu.be/y8ONlczgiXA" || true
+  download_one "Abstract tunnels" "https://youtu.be/QxzU3FBy57k" || true
+
+  # Remaining full-length (long encodes)
+  download_one "Aurora" "https://youtu.be/miqbNFmbN2Q" || true
+  download_one "Flying in the clouds" "https://youtu.be/w1E2zT_kEcw" || true
+  download_one "Abstract fluids" "https://youtu.be/jgm58cbu0kw" || true
+  download_one "Abstract fluids" "https://youtu.be/X5U86C4aXEc" || true
+  download_one "Abstract fluids" "https://youtu.be/wjQq0nSGS28" || true
+  download_one "Abstract fluids" "https://youtu.be/hOgVAYpHPCc" || true
+  download_one "Abstract fluids" "https://youtu.be/-KS0QrFHAOU" || true
+  download_one "Abstract fluids" "https://youtu.be/fOcRpAFfuHA" || true
+  download_one "Abstract tunnels" "https://youtu.be/Ps-0f0K6izM" || true
+  download_one "Woods, Nature and Weather" "https://youtu.be/VKSEG8Xr-RQ" || true
+  download_one "Woods, Nature and Weather" "https://youtu.be/0fjo9ZwpepA" || true
+  download_one "Woods, Nature and Weather" "https://youtu.be/TwXilp2mUtE" || true
+  download_one "Space,Universe and stars" "https://youtu.be/ztVV54sPOns" || true
+
+  log "VJ batch download finished"
+}
+
+main "$@"

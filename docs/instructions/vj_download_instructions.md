@@ -1,48 +1,71 @@
-The default is now a full-length **1280×720 H.264 MP4 with no audio**, and the frame rate is capped at **24 fps**. Length is left alone so you can cut the 6–10 second loops afterwards.
+# VJ YouTube downloads
 
-That is the size this show was built for. Fosfora scales it up to the 1080p projector, and a 1080p file would cost about two and a quarter times the memory without making the picture usefully sharper. 24 fps is the top of the 15–24 range, so a 10 second loop is about 0.8 GB and two of them can sit on screen together. A source that is already 15 fps stays at 15. A 30 or 60 fps source is brought down to 24. Anything that is not 16:9 is padded to 1280×720, not stretched.
+Clips for Fosfora VJ backgrounds (projector at 1080p; Fosfora scales sources up).
 
-On the aurora video, yt-dlp now picks format `398`: 1280×720, 30 fps, video only. The encode step then writes a 24 fps H.264 MP4 and drops the audio.
+## Queue
 
-The rule is in `~/.config/yt-dlp/config`. The encode is `~/.config/yt-dlp/vj-720.sh`, which runs after each download. The finished file still lands in the YouTube iCloud folder. A long video will take a while to encode on this iMac after the download finishes.
+| File | Purpose |
+|------|---------|
+| `docs/1_youtube_links_to_download.md` | URLs still to fetch (per-line notes for clip timing) |
+| `docs/2_youtube_links_done.md` | Finished items with YouTube title, URL, iCloud path, size, duration |
 
-Yes. A time range downloads only that slice, not the whole video. ffmpeg seeks to the start time and stops at the end. The 720p H.264 step then runs on that slice only.
+**Output:** `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube/<group>/`  
+`<group>` is the `# Heading` in the queue (e.g. `Abstract fluids`).
 
-Pass the range on that one command. Leave it out of the config, because most links in `docs/youtube_links` have no clip note and should stay full length.
+When a download finishes, remove its URL from `1_…` and record it in `2_…` under the same group (use `# Misc` if needed).
+
+## Batch script (preferred)
 
 ```sh
-yt-dlp --download-sections "*0:20-0:30" --force-keyframes-at-cuts "https://youtu.be/qeWLeTQAjzU"
+/Volumes/Elephant/d-udda-imac/youtube_grabber/docs/scripts/vj-download-all.sh
 ```
 
-The `*` marks a time range. `0:20-0:30` is 10 seconds starting 20 seconds in. `--force-keyframes-at-cuts` makes the cut land on those exact times. Without it, YouTube only cuts on keyframes, so the clip can start a few seconds early.
+- Uses `~/.config/yt-dlp/config` and post-encode `~/.config/yt-dlp/vj-720.sh`
+- Short section clips first, then shorter full videos, then long sources
+- Skips files already present (by YouTube id in the filename)
+- Updates the two queue docs after each success
+- Log: `~/.cache/yt-dlp/vj-batch.log`
 
-The notes in your list map to these ranges:
+Safe to re-run if the Mac sleeps or the job stops.
 
-| Clip                                                           | Range              |
-| -------------------------------------------------------------- | ------------------ |
-| Calm river, first fireplace, campfire by the river             | `*0:20-0:30`       |
-| Campfire in the snow                                           | `*1:00:00-1:00:10` |
-| Winter cabins and stormy ocean, where no start time is written | `*0:00-0:10`       |
+## Default format (download + encode)
 
-The calm river link is a live URL (`youtube.com/live/...`). A time range works there only if YouTube is serving a finished recording. An ongoing live stream has no fixed start to seek to.
+| Setting | Value |
+|---------|--------|
+| Resolution | **1280×720**, 16:9 (letterbox pad, no stretch) |
+| Codec | **H.264** MP4, **no audio** |
+| Frame rate | **≤24 fps** (15 fps sources stay 15; 30/60 → 24) |
+| Length | **Full video** unless the queue asks for a section (trim to 6–10 s loops in Fosfora later) |
 
-# Background context
+yt-dlp: video only, max 720p (`~/.config/yt-dlp/config`). Encode runs automatically after each file moves to iCloud. Long sources take a long time to encode on the iMac.
 
-Optimal VJ film clips follow these specs:
-Ok, help me picj the format as default to fit this VJ specs. Ignore the length of the video, but this means I only need to cut it up in lengths afterwwards.
+**Why 720p:** ~2.25× less memory than 1080p for little visible gain on this projector. Target loops: **6–10 s at 15–24 fps** (~0.3–0.8 GB unpacked per loop; two loops on screen is the design budget). Hard limits in app: ~24 s @ 24 fps / ~39 s @ 15 fps at 720p—still prefer 6–10 s.
 
-Make the files **1280×720, 16:9, 6–10 seconds, 15–24 fps, H.264 MP4, no audio.** The projector still runs at 1080p. Fosfora scales the clip up. A 1080p source does not make the projected image sharper in a useful way here, and it costs about two and a quarter times as much memory.
+## Section clips (only when noted in the queue)
 
-Length still matters at 720p, because every frame is stored. At that resolution one frame is about 3.5 MB:
+Pass range on the **command**, not in global config:
 
-| Clip           | Unpacked size |
-| -------------- | ------------- |
-| 6 s at 15 fps  | about 0.3 GB  |
-| 8 s at 18 fps  | about 0.5 GB  |
-| 10 s at 24 fps | about 0.8 GB  |
+```sh
+yt-dlp --download-sections "*0:20-0:30" --force-keyframes-at-cuts \
+  -P "$HOME/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube/Fireplace" \
+  "https://youtu.be/qeWLeTQAjzU"
+```
 
-That range is the one this show was built for. Two of those can sit on screen together, including while one scene dissolves into the next.
+`*` = section syntax. `--force-keyframes-at-cuts` avoids starting early on keyframe-only cuts.
 
-One clip can go longer before the app refuses it: at 720p and 24 fps the hard line is about **24 seconds**, and at 15 fps about **39 seconds**. Stay at 6–10 seconds anyway. A longer loop fills the same 6 GB pool the rest of the scene needs, and that is what slowed the picture last time.
+| Queue note | Range |
+|------------|--------|
+| Calm river, first fireplace, campfire by the river | `*0:20-0:30` |
+| Campfire in the snow | `*1:00:00-1:00:10` |
+| Winter cabins, stormy ocean (no start time) | `*0:00-0:10` |
 
-If one shot really has to be 1080p, keep it to **about 6 seconds at 15 fps** (about 0.7 GB). A 1080p clip at 24 fps only has room for about 10 seconds before it hits the 2 GB per-clip limit, and then there is little left for a second video layer.
+`youtube.com/live/…` sections work only when YouTube serves a **finished** recording, not a live stream.
+
+## One-off download
+
+Same as config defaults; set `-P` to the group folder:
+
+```sh
+yt-dlp -P "$HOME/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube/Aurora" \
+  "https://youtu.be/miqbNFmbN2Q"
+```
