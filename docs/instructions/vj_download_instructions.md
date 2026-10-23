@@ -28,6 +28,7 @@ From the **repo root**:
 | `make youtube-vj-status` | Running? progress %, current item, log tail |
 | `make youtube-vj-stop` | Stop immediately |
 | `make youtube-vj-stop-next` | Finish current item, then stop |
+| `make youtube-vj-restart-next` | Stop after current item, wait, then start again (use after `git pull`) |
 
 ```sh
 make youtube-vj

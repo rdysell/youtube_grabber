@@ -10,6 +10,7 @@ Run everything from the **repo root** (`youtube_grabber/`).
 | `make youtube-vj-status`                     | Running? progress %, current URL, log tail               |
 | `make youtube-vj-stop`                       | Stop immediately (kills current encode)                  |
 | `make youtube-vj-stop-next`                  | Finish **current** item, then stop                       |
+| `make youtube-vj-restart-next`               | Stop after current item, wait, then **start** (reload scripts) |
 
 - **Output:** `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube/<group>/`
 - **Log:** `~/.cache/yt-dlp/vj-batch.log`
@@ -26,6 +27,7 @@ Safe to re-run; skips files already on disk. Only **one** `make youtube-vj` at a
 | `make convert-vj-status`                     | Running? progress %, current file, log tail             |
 | `make convert-vj-stop`                       | Stop immediately                                        |
 | `make convert-vj-stop-next`                  | Finish **current** file, then stop                      |
+| `make convert-vj-restart-next`               | Stop after current file, wait, then **start** (reload scripts) |
 
 | Folder                                                                               | Role                    |
 | ------------------------------------------------------------------------------------ | ----------------------- |
@@ -53,6 +55,7 @@ Tunables: `docs/scripts/vj-limits.sh` (copied to `~/.config/yt-dlp/vj-limits.sh`
 
 - **CPU:** One encode at a time is easiest on the iMac; avoid two heavy jobs together.
 - **OK together:** `make youtube-vj` while `make convert-vj` is fine if load is acceptable; never two `youtube-vj` runs.
+- **After `git pull`:** `make youtube-vj-restart-next` or `make convert-vj-restart-next` reloads scripts without killing a long encode mid-file.
 - **Progress %** = items done in the **current** run (not ffmpeg % inside one long file).
 - **Scripts:** `docs/scripts/` (`vj-download-all.sh`, `convert-vj`, status/stop helpers).
 

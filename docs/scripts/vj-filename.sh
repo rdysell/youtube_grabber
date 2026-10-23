@@ -45,8 +45,11 @@ vj_extract_youtube_id() {
       return 0
       ;;
     *_1280x720_vj)
-      id=${base%_1280x720_vj}
-      id=${id##*_}
+      id=${base%_${VJ_RES_TAG}_vj}
+      # YouTube ids are 11 characters (may include _-).
+      if [[ ${#id} -ge 11 ]]; then
+        id=${id: -11}
+      fi
       printf '%s' "$id"
       return 0
       ;;
@@ -55,23 +58,43 @@ vj_extract_youtube_id() {
 }
 
 vj_title_from_legacy_basename() {
-  local base="$1"
+  local base="$1" id rest
   base=$(basename "$base" .mp4)
-  base=${base%_1280x720_vj}
-  if [[ "$base" == *_1280x720_vj ]]; then
-    base=${base%_"${VJ_RES_TAG}_vj"}
+  base=$(printf '%s' "$base" | sed -E 's/[[:space:]]*\[[^]]*\][[:space:]]*$//')
+  if [[ "$base" == *"_${VJ_RES_TAG}_vj" ]]; then
+    id=$(vj_extract_youtube_id "$base.mp4" 2>/dev/null) || id=""
+    if [[ -n "$id" ]]; then
+      rest=${base%_${VJ_RES_TAG}_vj}
+      vj_title_stem_before_id "$rest" "$id"
+      return 0
+    fi
+    base=${base%_${VJ_RES_TAG}_vj}
     base=${base%_*}
   fi
-  base=$(printf '%s' "$base" | sed -E 's/[[:space:]]*\[[^]]*\][[:space:]]*$//')
   printf '%s' "$base"
 }
 
+# Strip mistaken extra id-like suffixes (botched renames); keeps title stem with underscores.
+vj_title_stem_before_id() {
+  local rest="$1" id="$2" tail
+  rest=${rest%_"$id"}
+  while [[ "$rest" =~ _([A-Za-z0-9_-]{10,11})$ ]]; do
+    tail="${BASH_REMATCH[1]}"
+    [[ "$tail" =~ [0-9] ]] || break
+    rest=${rest%_"$tail"}
+  done
+  printf '%s' "$rest"
+}
+
 vj_is_friendly_basename() {
-  local base="$1" id
-  [[ "$base" =~ ^[A-Za-z0-9_-]+_[A-Za-z0-9_-]{6,}_${VJ_RES_TAG}_vj\.mp4$ ]] || return 1
+  local base="$1" id rest title_part expected
+  [[ "$base" == *"_${VJ_RES_TAG}_vj.mp4" ]] || return 1
   id=$(vj_extract_youtube_id "$base") || return 1
-  [[ "$base" == *"_${id}_${id}_"* ]] && return 1
-  return 0
+  rest=${base%_${VJ_RES_TAG}_vj.mp4}
+  [[ "$rest" == *_"$id" ]] || return 1
+  title_part=$(vj_title_stem_before_id "$rest" "$id")
+  expected=$(vj_youtube_basename "${title_part//_/ }" "$id")
+  [[ "$base" == "$expected" ]]
 }
 
 # Rename encoded file to friendly name; prints final path on stdout.
@@ -87,9 +110,7 @@ vj_finalize_youtube_file() {
   if [[ -z "$title" ]]; then
     title=$(vj_title_from_legacy_basename "$base")
   fi
-  # Already-friendly files: derive human title from stem before video id.
-  if [[ "$base" == *"_${id}_${VJ_RES_TAG}_vj.mp4" ]]; then
-    title=${base%_"${id}_${VJ_RES_TAG}_vj.mp4"}
+  if [[ "$title" == *"_"* ]]; then
     title=${title//_/ }
   fi
   new=$(vj_youtube_basename "$title" "$id")

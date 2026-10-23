@@ -20,6 +20,7 @@ From the **repo root**:
 | `make convert-vj-status` | Running? progress %, current file, log tail |
 | `make convert-vj-stop` | Stop immediately |
 | `make convert-vj-stop-next` | Finish current file, then stop |
+| `make convert-vj-restart-next` | Stop after current file, wait, then start again (use after `git pull`) |
 | `make youtube-vj` | YouTube queue (see other doc) |
 
 ```sh
