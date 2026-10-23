@@ -1,0 +1,6 @@
+#!/bin/bash
+set -euo pipefail
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=vj-job-common.sh
+source "${SCRIPT_DIR}/vj-job-common.sh"
+vj_stop_after_current_request "convert-vj-splits" "VJ 55s split" "clip"

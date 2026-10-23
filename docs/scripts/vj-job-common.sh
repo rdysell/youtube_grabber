@@ -1,19 +1,40 @@
-# Shared helpers for youtube-vj / convert-vj (status, stop, progress).
-VJ_CACHE="${HOME}/.cache/yt-dlp"
+# Shared helpers for youtube-vj / convert-vj / convert-vj-splits (status, stop, progress).
+VJ_CACHE="${VJ_CACHE:-${HOME}/.cache/yt-dlp}"
 
 vj_pid_file() { echo "${VJ_CACHE}/$1.pid"; }
 vj_state_file() { echo "${VJ_CACHE}/$1.state"; }
 
+# Serialize state updates so a once-a-second progress write cannot drop STOP_AFTER.
+vj_state_lock() {
+  local lock="${VJ_CACHE}/$1.state.lock" i=0
+  mkdir -p "$VJ_CACHE"
+  while ! mkdir "$lock" 2>/dev/null; do
+    i=$((i + 1))
+    if [[ "$i" -ge 20 ]]; then
+      rm -rf "$lock"
+      i=0
+    fi
+    sleep 0.05
+  done
+}
+
+vj_state_unlock() {
+  rmdir "${VJ_CACHE}/$1.state.lock" 2>/dev/null || true
+}
+
+# Values may contain spaces and slashes (file paths). Avoid sed metacharacters.
 vj_state_set() {
-  local job="$1" key="$2" val="$3" f
+  local job="$1" key="$2" val="$3" f tmp status=0
+  vj_state_lock "$job"
   f=$(vj_state_file "$job")
   mkdir -p "$VJ_CACHE"
   touch "$f"
-  if grep -q "^${key}=" "$f" 2>/dev/null; then
-    sed -i '' "s|^${key}=.*|${key}=${val}|" "$f"
-  else
-    echo "${key}=${val}" >>"$f"
-  fi
+  tmp="${f}.tmp.$$"
+  grep -v "^${key}=" "$f" >"$tmp" || true
+  printf '%s=%s\n' "$key" "$val" >>"$tmp" || status=1
+  mv -f "$tmp" "$f" || status=1
+  vj_state_unlock "$job"
+  return "$status"
 }
 
 vj_state_get() {
@@ -80,12 +101,15 @@ vj_job_stop() {
     convert-vj)
       vj_print_summary "$job" "${VJ_CACHE}/convert-vj.log" "Local VJ convert"
       ;;
+    convert-vj-splits)
+      vj_print_summary "$job" "${VJ_CACHE}/convert-vj-splits.log" "VJ 55s split"
+      ;;
   esac
 }
 
 vj_print_status() {
   local job="$1" log="$2" label="$3"
-  local pid total done pct phase current
+  local pid total done pct phase current source_path output_path
   pid=$(vj_job_running_pid "$job" || true)
   total=$(vj_state_get "$job" TOTAL)
   done=$(vj_state_get "$job" DONE)
@@ -113,6 +137,14 @@ vj_print_status() {
   if [[ -n "$current" ]]; then
     echo "  Current:  ${current}"
   fi
+  source_path=$(vj_state_get "$job" SOURCE)
+  output_path=$(vj_state_get "$job" OUTPUT)
+  if [[ -n "$source_path" ]]; then
+    echo "  Source:   ${source_path}"
+  fi
+  if [[ -n "$output_path" ]]; then
+    echo "  Output:   ${output_path}"
+  fi
   echo "  Log:      ${log}"
   if [[ -f "$log" ]]; then
     echo "  --- log (last 8 job lines) ---"
@@ -135,13 +167,47 @@ vj_print_job_banner() {
 }
 
 vj_stop_after_current_request() {
-  local job="$1" label="$2"
+  local job="$1" label="$2" noun="${3:-item}"
   if ! vj_job_running_pid "$job" >/dev/null; then
     echo "${label}: not running."
     exit 1
   fi
   vj_state_set "$job" STOP_AFTER 1
-  echo "${label}: will stop after the current item finishes."
+  echo "${label}: will stop after the current ${noun} finishes."
+}
+
+# Ask the job process to stop itself before its children are killed, so it can
+# keep finished work. Falls back to killing the tree if it does not exit.
+vj_job_stop_graceful() {
+  local job="$1" pid i
+  pid=$(vj_job_running_pid "$job" || true)
+  if [[ -z "$pid" ]]; then
+    echo "${job}: not running"
+    rm -f "$(vj_pid_file "$job")"
+    return 0
+  fi
+  echo "Stopping ${job} (pid ${pid})..."
+  kill -TERM "$pid" 2>/dev/null || true
+  i=0
+  while kill -0 "$pid" 2>/dev/null; do
+    i=$((i + 1))
+    if [[ "$i" -ge 15 ]]; then
+      echo "Still running; killing child processes..."
+      vj_kill_tree "$pid"
+      sleep 0.5
+      kill -KILL "$pid" 2>/dev/null || true
+      break
+    fi
+    sleep 0.2
+  done
+  rm -f "$(vj_pid_file "$job")"
+  vj_state_set "$job" PHASE "stopped"
+  echo "${job}: stopped"
+  case "$job" in
+    convert-vj-splits)
+      vj_print_summary "$job" "${VJ_CACHE}/convert-vj-splits.log" "VJ 55s split"
+      ;;
+  esac
 }
 
 vj_maybe_stop_after_current() {

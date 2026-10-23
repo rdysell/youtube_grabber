@@ -55,3 +55,7 @@ Name collisions in output or archive get `_2`, `_3`, …
 3. Use clips from **Converted_media_files**; originals sit in **Converted_source_files**.
 
 Requires `ffmpeg` and `ffprobe` on the PATH.
+
+## Split a finished file into 55-second clips
+
+`make convert-vj-splits` asks for one video path and writes ~55s clips into a folder next to that file. See [convert_vj_splits_instructions.md](./convert_vj_splits_instructions.md).

@@ -241,8 +241,12 @@ current-ejs-version:
 
 # VJ media (docs/scripts)
 .PHONY: youtube-vj youtube-vj-start youtube-vj-status youtube-vj-stop youtube-vj-stop-next youtube-vj-restart-next \
-        convert-vj convert-vj-start convert-vj-status convert-vj-stop convert-vj-stop-next convert-vj-restart-next
+        convert-vj convert-vj-start convert-vj-status convert-vj-stop convert-vj-stop-next convert-vj-restart-next \
+        convert-vj-splits convert-vj-splits-start convert-vj-splits-status \
+        convert-vj-splits-stop convert-vj-splits-stop-next
 
 youtube-vj youtube-vj-start youtube-vj-status youtube-vj-stop youtube-vj-stop-next youtube-vj-restart-next \
-convert-vj convert-vj-start convert-vj-status convert-vj-stop convert-vj-stop-next convert-vj-restart-next:
-	$(MAKE) -C docs/scripts $@
+convert-vj convert-vj-start convert-vj-status convert-vj-stop convert-vj-stop-next convert-vj-restart-next \
+convert-vj-splits convert-vj-splits-start convert-vj-splits-status \
+convert-vj-splits-stop convert-vj-splits-stop-next:
+	$(MAKE) -C docs/scripts VJ_INVOKE_DIR='$(CURDIR)' $@

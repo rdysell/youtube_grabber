@@ -1,0 +1,170 @@
+#!/bin/bash
+# Ask for one video path, then split it in the background.
+set -euo pipefail
+
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=vj-job-common.sh
+source "${SCRIPT_DIR}/vj-job-common.sh"
+# shellcheck source=vj-split-names.sh
+source "${SCRIPT_DIR}/vj-split-names.sh"
+
+JOB=convert-vj-splits
+LOG="${VJ_CACHE}/convert-vj-splits.log"
+
+if ! command -v ffmpeg >/dev/null 2>&1 || ! command -v ffprobe >/dev/null 2>&1; then
+  echo "ffmpeg is not installed. Install it with: brew install ffmpeg" >&2
+  exit 1
+fi
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "python3 is required to read a pasted path." >&2
+  exit 1
+fi
+
+if running=$(vj_job_running_pid "$JOB" 2>/dev/null); then
+  echo "${JOB}: already running (pid ${running})."
+  echo "  Status: make ${JOB}-status"
+  exit 1
+fi
+
+raw=""
+if [[ $# -ge 1 ]]; then
+  raw="$*"
+else
+  if [[ ! -r /dev/tty ]]; then
+    echo "Run make convert-vj-splits from a terminal so you can paste the video path." >&2
+    exit 1
+  fi
+  cat >/dev/tty <<'EOF'
+Which file do you want to split into 55-second clips?
+Paste the full path. Finder: select the video, then Option + Command + C.
+A paste with backslashes before spaces is fine.
+
+EOF
+  printf 'Video path: ' >/dev/tty
+  IFS= read -r raw </dev/tty || raw=""
+fi
+
+if [[ -z "${raw//[[:space:]]/}" ]]; then
+  echo "No path given." >&2
+  exit 1
+fi
+
+if ! resolved=$(
+  VJ_PASTED_PATH="$raw" VJ_INVOKE_DIR="${VJ_INVOKE_DIR:-$PWD}" python3 - <<'PY'
+import os, shlex, sys
+
+raw = os.environ.get("VJ_PASTED_PATH", "")
+raw = raw.strip().strip("\r")
+if not raw:
+    sys.exit(2)
+
+base = os.environ.get("VJ_INVOKE_DIR") or os.getcwd()
+
+def add(options, value):
+    value = value.strip()
+    if value and value not in options:
+        options.append(value)
+
+options = []
+try:
+    parts = shlex.split(raw, posix=True)
+except ValueError:
+    parts = []
+
+if len(parts) == 1:
+    add(options, parts[0])
+elif len(parts) > 1:
+    add(options, " ".join(parts))
+    add(options, parts[0])
+
+add(options, raw)
+
+if len(raw) >= 2 and raw[0] == raw[-1] and raw[0] in ("'", '"'):
+    inner_raw = raw[1:-1]
+    add(options, inner_raw)
+    try:
+        inner = shlex.split(inner_raw, posix=True)
+    except ValueError:
+        inner = []
+    if len(inner) == 1:
+        add(options, inner[0])
+    elif len(inner) > 1:
+        add(options, " ".join(inner))
+
+def finish(path):
+    if path == "~" or path.startswith("~/"):
+        path = os.path.expanduser(path)
+    if not os.path.isabs(path):
+        path = os.path.join(base, path)
+    return os.path.normpath(path)
+
+finished = [finish(path) for path in options]
+for path in finished:
+    if os.path.isfile(path):
+        print(path)
+        sys.exit(0)
+
+print(finished[0] if finished else raw)
+sys.exit(1)
+PY
+); then
+  echo "No video file at that path:" >&2
+  echo "  ${resolved:-$raw}" >&2
+  if [[ -n "${resolved:-}" && "$resolved" != "$raw" ]]; then
+    echo "Pasted:" >&2
+    echo "  $raw" >&2
+  fi
+  exit 1
+fi
+
+if vj_split_is_dataless "$resolved"; then
+  echo "That file is in iCloud and not downloaded yet." >&2
+  echo "Open it in Finder so it downloads, then run this again." >&2
+  echo "  $resolved" >&2
+  exit 1
+fi
+
+echo "Checking the file..."
+if ! vj_split_has_video "$resolved"; then
+  echo "No video stream in that file:" >&2
+  echo "  $resolved" >&2
+  exit 1
+fi
+
+duration=$(vj_split_duration "$resolved")
+if ! vj_split_is_number "$duration"; then
+  echo "Could not read the duration of that file:" >&2
+  echo "  $resolved" >&2
+  exit 1
+fi
+
+parent=$(dirname "$resolved")
+raw_stem=$(vj_split_sanitize "$(basename "${resolved%.*}")")
+stem=$(vj_split_stem_for "$resolved" "$duration")
+out=$(vj_split_pick_dir "$parent" "$stem" "$resolved")
+estimate=$(vj_split_estimate_count "$duration")
+clock=$(vj_split_fmt_clock "$duration")
+
+echo ""
+echo "Source:    $resolved"
+echo "Duration:  $clock"
+echo "About:     ${estimate} clip(s) of ${VJ_SPLIT_SEGMENT_SEC} seconds"
+echo "Folder:    $out"
+if [[ "$raw_stem" != "$stem" ]]; then
+  echo "Filename shortened so each clip stays within ${VJ_SPLIT_NAME_MAX} characters before .mp4."
+fi
+if [[ -d "$out" ]]; then
+  echo "This folder already has clips. They will be replaced."
+fi
+echo "Stream copy keeps the original resolution, codec, and quality."
+echo "Cuts land on keyframes, so a clip can be a little shorter or longer than 55 seconds."
+echo "The original file stays where it is."
+echo ""
+
+exec "${SCRIPT_DIR}/vj-background-start.sh" \
+  "$JOB" \
+  "make ${JOB}-status" \
+  "$LOG" \
+  "${SCRIPT_DIR}/vj-run-limited.sh" \
+  "${SCRIPT_DIR}/convert-vj-splits" \
+  "$resolved"

@@ -41,9 +41,28 @@ Safe to re-run; skips files already on disk. Only **one** `make youtube-vj` at a
 
 Safe to re-run; skips when a valid output already exists. **Starts in the background** like YouTube batch. Use `make convert-vj-status` for progress.
 
+## Split one video into 55-second clips
+
+| Command                                                    | Action                                                              |
+| ---------------------------------------------------------- | ------------------------------------------------------------------- |
+| `make convert-vj-splits` or `make convert-vj-splits-start` | Ask for a file path, then split it (quiet; use status for progress) |
+| `make convert-vj-splits-status`                            | Running? progress %, current clip, source, output folder, log tail |
+| `make convert-vj-splits-stop`                              | Stop immediately (keeps finished clips, drops the one in progress)  |
+| `make convert-vj-splits-stop-next`                         | Finish the **current** clip, then stop                              |
+
+- Paste a full path when asked. Finder: select the video, then **Option + Command + C**. A paste with backslashes before spaces is fine.
+- **Output:** a `*_clips` folder next to that file. The original stays where it is.
+- **Names:** spaces and dots become `_`; other odd characters are removed. If the name would be longer than 100 characters before `.mp4`, it is shortened on a `_` boundary.
+- **Clips:** about 55 seconds, stream copy (same resolution, codec, and quality). Cuts land on keyframes, so a clip can be a little shorter or longer than 55s. The filename uses the real span, for example `00-00-00_to_00-00-55`.
+- **Log:** `~/.cache/yt-dlp/convert-vj-splits.log`
+- **State:** `~/.cache/yt-dlp/convert-vj-splits.{pid,state}`
+- **Details:** [docs/instructions/convert_vj_splits_instructions.md](docs/instructions/convert_vj_splits_instructions.md)
+
+The terminal comes back after the path is accepted. Use `make convert-vj-splits-status` for progress. Running it again on the **same** file replaces that clips folder. Only one `make convert-vj-splits` at a time.
+
 ## Resource limits
 
-Each `make youtube-vj` / `make convert-vj` run is wrapped with:
+Each `make youtube-vj` / `make convert-vj` / `make convert-vj-splits` run is wrapped with:
 
 - **CPU:** ~**40%** of total cores (`ffmpeg -threads` + `cpulimit`).
 - **RAM:** **30 GiB** ulimit on **Linux** only. **macOS cannot set a per-process RAM cap** (Darwin ignores `ulimit -v`); rely on CPU limits and avoid running two heavy encodes at once.
@@ -54,10 +73,10 @@ Tunables: `docs/scripts/vj-limits.sh` (copied to `~/.config/yt-dlp/vj-limits.sh`
 ## Tips
 
 - **CPU:** One encode at a time is easiest on the iMac; avoid two heavy jobs together.
-- **OK together:** `make youtube-vj` while `make convert-vj` is fine if load is acceptable; never two `youtube-vj` runs.
+- **OK together:** `make youtube-vj` while `make convert-vj` is fine if load is acceptable; never two `youtube-vj` runs. `make convert-vj-splits` is a stream copy (lighter than an encode) and can run beside them; still only one splits job at a time.
 - **After `git pull`:** `make youtube-vj-restart-next` or `make convert-vj-restart-next` reloads scripts without killing a long encode mid-file.
-- **Progress %** = items done in the **current** run (not ffmpeg % inside one long file).
-- **Scripts:** `docs/scripts/` (`vj-download-all.sh`, `convert-vj`, status/stop helpers).
+- **Progress %** = items done in the **current** run (not ffmpeg % inside one long file). For splits, one item is one ~55s clip.
+- **Scripts:** `docs/scripts/` (`vj-download-all.sh`, `convert-vj`, `convert-vj-splits`, status/stop helpers).
 
 ## Output spec (both pipelines)
 

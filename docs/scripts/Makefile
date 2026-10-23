@@ -1,5 +1,7 @@
 .PHONY: youtube-vj youtube-vj-start youtube-vj-status youtube-vj-stop youtube-vj-stop-next youtube-vj-restart-next \
-        convert-vj convert-vj-start convert-vj-status convert-vj-stop convert-vj-stop-next convert-vj-restart-next
+        convert-vj convert-vj-start convert-vj-status convert-vj-stop convert-vj-stop-next convert-vj-restart-next \
+        convert-vj-splits convert-vj-splits-start convert-vj-splits-status \
+        convert-vj-splits-stop convert-vj-splits-stop-next
 
 youtube-vj youtube-vj-start:
 	@./vj-background-start.sh youtube-vj "make youtube-vj-status" "$$HOME/.cache/yt-dlp/vj-batch.log" ./vj-run-limited.sh ./vj-download-all.sh
@@ -30,3 +32,15 @@ convert-vj-stop-next:
 
 convert-vj-restart-next:
 	@./vj-restart-next.sh convert-vj "make convert-vj-status" "$$HOME/.cache/yt-dlp/convert-vj.log" ./vj-run-limited.sh ./convert-vj
+
+convert-vj-splits convert-vj-splits-start:
+	@./convert-vj-splits-start
+
+convert-vj-splits-status:
+	@./convert-vj-splits-status
+
+convert-vj-splits-stop:
+	@./convert-vj-splits-stop
+
+convert-vj-splits-stop-next:
+	@./convert-vj-splits-stop-next
