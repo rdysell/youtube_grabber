@@ -4,40 +4,40 @@ Run everything from the **repo root** (`youtube_grabber/`).
 
 ## YouTube queue
 
-| Command | Action |
-|---------|--------|
+| Command                                      | Action                                                   |
+| -------------------------------------------- | -------------------------------------------------------- |
 | `make youtube-vj` or `make youtube-vj-start` | Download & encode queue (quiet; use status for progress) |
-| `make youtube-vj-status` | Running? progress %, current URL, log tail |
-| `make youtube-vj-stop` | Stop immediately (kills current encode) |
-| `make youtube-vj-stop-next` | Finish **current** item, then stop |
+| `make youtube-vj-status`                     | Running? progress %, current URL, log tail               |
+| `make youtube-vj-stop`                       | Stop immediately (kills current encode)                  |
+| `make youtube-vj-stop-next`                  | Finish **current** item, then stop                       |
 
 - **Output:** `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube/<group>/`
 - **Log:** `~/.cache/yt-dlp/vj-batch.log`
 - **State:** `~/.cache/yt-dlp/youtube-vj.{pid,state}`
 - **Details:** [docs/instructions/vj_download_instructions.md](docs/instructions/vj_download_instructions.md)
 
-Safe to re-run; skips files already on disk. Only **one** `make youtube-vj` at a time. **No live log spam** in the terminal—use `make youtube-vj-status` or `tail -f` on the log file. Prints a **summary** when the run finishes (or after `-stop`).
+Safe to re-run; skips files already on disk. Only **one** `make youtube-vj` at a time. **Starts in the background**—the terminal prompt returns right away (no log streaming). Use `make youtube-vj-status` or `tail -f` on the log file. Summary is written to the log when the job finishes (or after `-stop`).
 
 ## Local file convert
 
-| Command | Action |
-|---------|--------|
+| Command                                      | Action                                                  |
+| -------------------------------------------- | ------------------------------------------------------- |
 | `make convert-vj` or `make convert-vj-start` | Convert inbox → VJ MP4 (quiet; use status for progress) |
-| `make convert-vj-status` | Running? progress %, current file, log tail |
-| `make convert-vj-stop` | Stop immediately |
-| `make convert-vj-stop-next` | Finish **current** file, then stop |
+| `make convert-vj-status`                     | Running? progress %, current file, log tail             |
+| `make convert-vj-stop`                       | Stop immediately                                        |
+| `make convert-vj-stop-next`                  | Finish **current** file, then stop                      |
 
-| Folder | Role |
-|--------|------|
+| Folder                                                                               | Role                    |
+| ------------------------------------------------------------------------------------ | ----------------------- |
 | `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/Convert_these_media_files` | Inbox (drop files here) |
-| `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/Converted_media_files` | VJ-ready output |
-| `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/Converted_source_files` | Originals after success |
+| `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/Converted_media_files`     | VJ-ready output         |
+| `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/Converted_source_files`    | Originals after success |
 
 - **Log:** `~/.cache/yt-dlp/convert-vj.log`
 - **State:** `~/.cache/yt-dlp/convert-vj.{pid,state}`
 - **Details:** [docs/instructions/convert_to_vj_format_instructions.md](docs/instructions/convert_to_vj_format_instructions.md)
 
-Safe to re-run; skips when a valid output already exists. Use `make convert-vj-status` for progress (not streamed to the terminal). Prints a **summary** when the run finishes (or after `-stop`).
+Safe to re-run; skips when a valid output already exists. **Starts in the background** like YouTube batch. Use `make convert-vj-status` for progress.
 
 ## Resource limits
 

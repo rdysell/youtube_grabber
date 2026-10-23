@@ -181,7 +181,9 @@ process_file() {
 
 main() {
   vj_job_acquire_pid "$JOB"
-  vj_print_job_banner "Local VJ convert" "make convert-vj-status" "$LOG"
+  if [[ "${VJ_BACKGROUND:-}" != "1" ]]; then
+    vj_print_job_banner "Local VJ convert" "make convert-vj-status" "$LOG"
+  fi
   log "convert-vj started (inbox: $INBOX)"
   local -a files=()
   while IFS= read -r -d '' f; do

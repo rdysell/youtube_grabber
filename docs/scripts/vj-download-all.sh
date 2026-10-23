@@ -166,7 +166,9 @@ main() {
   vj_state_set "$JOB" STOP_AFTER 0
 
   : >"$LOG"
-  vj_print_job_banner "YouTube VJ batch" "make youtube-vj-status" "$LOG"
+  if [[ "${VJ_BACKGROUND:-}" != "1" ]]; then
+    vj_print_job_banner "YouTube VJ batch" "make youtube-vj-status" "$LOG"
+  fi
   log "VJ batch download started (${total} items)"
 
   # Short section clips first

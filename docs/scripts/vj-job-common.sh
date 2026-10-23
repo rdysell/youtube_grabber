@@ -185,32 +185,40 @@ vj_print_summary() {
     fails=${fails:-0}
   fi
 
-  echo ""
-  echo "── ${title} — summary ──"
-  case "${phase}" in
-    finished) echo "  Result:   completed" ;;
-    stopped) echo "  Result:   stopped early" ;;
-    stopped_after_current) echo "  Result:   stopped after current item" ;;
-    *) echo "  Result:   ${phase:-done}" ;;
-  esac
-  if [[ -n "$total" && "$total" =~ ^[0-9]+$ ]]; then
-    done=${done:-0}
-    if [[ "$total" -gt 0 ]]; then
-      pct=$((done * 100 / total))
-      echo "  Progress: ${done}/${total} items (${pct}%)"
-      remain=$((total - done))
-      if [[ "$remain" -gt 0 ]]; then
-        echo "  Skipped:  ${remain} item(s) failed or not completed"
+  {
+    echo ""
+    echo "── ${title} — summary ──"
+    case "${phase}" in
+      finished) echo "  Result:   completed" ;;
+      stopped) echo "  Result:   stopped early" ;;
+      stopped_after_current) echo "  Result:   stopped after current item" ;;
+      *) echo "  Result:   ${phase:-done}" ;;
+    esac
+    if [[ -n "$total" && "$total" =~ ^[0-9]+$ ]]; then
+      done=${done:-0}
+      if [[ "$total" -gt 0 ]]; then
+        pct=$((done * 100 / total))
+        echo "  Progress: ${done}/${total} items (${pct}%)"
+        remain=$((total - done))
+        if [[ "$remain" -gt 0 ]]; then
+          echo "  Skipped:  ${remain} item(s) failed or not completed"
+        fi
+      else
+        echo "  Progress: 0 items in queue"
       fi
-    else
-      echo "  Progress: 0 items in queue"
     fi
-  fi
-  if [[ "$fails" -gt 0 ]]; then
-    echo "  Failures: ${fails} (see log)"
-  fi
-  echo "  Log:      ${log}"
-  echo "  Status:   make ${job}-status"
-  echo "────────────────────────────"
-  echo ""
+    if [[ "$fails" -gt 0 ]]; then
+      echo "  Failures: ${fails} (see log)"
+    fi
+    echo "  Log:      ${log}"
+    echo "  Status:   make ${job}-status"
+    echo "────────────────────────────"
+    echo ""
+  } | {
+    if [[ -t 1 ]]; then
+      tee -a "$log"
+    else
+      cat >>"$log"
+    fi
+  }
 }
