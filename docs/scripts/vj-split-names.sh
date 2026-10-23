@@ -141,6 +141,68 @@ vj_split_youtube_id() {
   fi
 }
 
+# Abstract_Liquid__1h-51-53_to_1h-52-50.mp4 -> Abstract_Liquid
+# A file with no __ keeps its own stem, so it gets its own subfolder.
+vj_split_group_key() {
+  local stem
+  stem=$(basename "$1")
+  stem=${stem%.*}
+  if [[ "$stem" == *"__"* ]]; then
+    stem=${stem%%__*}
+  fi
+  vj_split_sanitize "$stem"
+}
+
+# 1h-51-53 -> seconds. Empty when the name has no clip span.
+vj_split_stamp_to_sec() {
+  local stamp="$1" h m s
+  if [[ "$stamp" =~ ^([0-9]+)h-([0-9]{2})-([0-9]{2})$ ]]; then
+    h="${BASH_REMATCH[1]}"
+    m="${BASH_REMATCH[2]}"
+    s="${BASH_REMATCH[3]}"
+    printf '%s\n' $((10#$h * 3600 + 10#$m * 60 + 10#$s))
+    return 0
+  fi
+  return 1
+}
+
+vj_split_name_start_sec() {
+  local stem="${1##*/}"
+  stem=${stem%.*}
+  if [[ "$stem" =~ __([0-9]+h-[0-9]{2}-[0-9]{2})_to_[0-9]+h-[0-9]{2}-[0-9]{2}$ ]]; then
+    vj_split_stamp_to_sec "${BASH_REMATCH[1]}"
+    return
+  fi
+  return 1
+}
+
+vj_split_is_media_name() {
+  local lower
+  lower=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
+  case "$lower" in
+    *.mp4|*.mov|*.m4v|*.mkv|*.webm|*.avi|*.mpg|*.mpeg|*.wmv|*.flv|*.ts|*.mts|*.m2ts)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
+# Video files sitting directly in the folder. Subfolders are left alone.
+vj_split_folder_candidates() {
+  local dir="$1" f saved=0
+  [[ -d "$dir" ]] || return 0
+  shopt -q nullglob && saved=1
+  shopt -s nullglob
+  for f in "$dir"/*; do
+    [[ -f "$f" ]] || continue
+    vj_split_is_media_name "$(basename "$f")" || continue
+    printf '%s\n' "$f"
+  done
+  if [[ "$saved" -eq 0 ]]; then
+    shopt -u nullglob
+  fi
+}
+
 # Short title shared by the folder and every clip. No YouTube id.
 # Abstract_Liquid_..._jgm58cbu0kw_1280x720_vj.mp4 -> Abstract_Liquid
 vj_split_clip_title() {

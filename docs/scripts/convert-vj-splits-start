@@ -1,5 +1,5 @@
 #!/bin/bash
-# Ask for one video path, then split it in the background.
+# Ask for one video path or a folder of videos, then split in the background.
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
@@ -32,13 +32,14 @@ if [[ $# -ge 1 ]]; then
   raw="$*"
 else
   if [[ ! -r /dev/tty ]]; then
-    echo "Run make convert-vj-splits from a terminal so you can paste the video path." >&2
+    echo "Run make convert-vj-splits from a terminal so you can paste a video or folder path." >&2
     exit 1
   fi
   cat >/dev/tty <<EOF
-Which file do you want to split into ${VJ_SPLIT_SEGMENT_SEC}-second clips?
-Paste the full path. Finder: select the video, then Option + Command + C.
+Which file or folder do you want to split into ${VJ_SPLIT_SEGMENT_SEC}-second clips?
+Paste the full path. Finder: select the video or folder, then Option + Command + C.
 A paste with backslashes before spaces is fine.
+A folder splits every video in it. Files that share the text before __ go in one subfolder.
 
 EOF
   printf 'Video path: ' >/dev/tty
@@ -101,7 +102,7 @@ def finish(path):
 
 finished = [finish(path) for path in options]
 for path in finished:
-    if os.path.isfile(path):
+    if os.path.isfile(path) or os.path.isdir(path):
         print(path)
         sys.exit(0)
 
@@ -109,13 +110,75 @@ print(finished[0] if finished else raw)
 sys.exit(1)
 PY
 ); then
-  echo "No video file at that path:" >&2
+  echo "No video file or folder at that path:" >&2
   echo "  ${resolved:-$raw}" >&2
   if [[ -n "${resolved:-}" && "$resolved" != "$raw" ]]; then
     echo "Pasted:" >&2
     echo "  $raw" >&2
   fi
   exit 1
+fi
+
+preview_folder() {
+  local dir="$1" f key prev="" nfiles=0 groups=0 usable=0 skipped=0 raw
+  raw=$(mktemp)
+  echo "Checking the folder..."
+  while IFS= read -r f; do
+    [[ -n "$f" ]] || continue
+    if vj_split_is_dataless "$f"; then
+      echo "Not downloaded yet (skipped): $f"
+      skipped=$((skipped + 1))
+      continue
+    fi
+    key=$(vj_split_group_key "$f")
+    printf '%s\n' "$key" >>"$raw"
+    usable=$((usable + 1))
+  done < <(vj_split_folder_candidates "$dir" | sort)
+  if [[ "$usable" -lt 1 ]]; then
+    rm -f "$raw"
+    echo "No video files in that folder:" >&2
+    echo "  $dir" >&2
+    return 1
+  fi
+  echo ""
+  echo "Folder:    $dir"
+  prev=""
+  while IFS= read -r key; do
+    [[ -n "$key" ]] || continue
+    if [[ "$key" != "$prev" ]]; then
+      if [[ -n "$prev" ]]; then
+        echo "  ${prev}/  ${nfiles} file(s)"
+      fi
+      prev=$key
+      nfiles=0
+      groups=$((groups + 1))
+    fi
+    nfiles=$((nfiles + 1))
+  done < <(sort "$raw")
+  if [[ -n "$prev" ]]; then
+    echo "  ${prev}/  ${nfiles} file(s)"
+  fi
+  rm -f "$raw"
+  echo "Groups:    ${groups} subfolder(s), ${usable} file(s)"
+  if [[ "$skipped" -gt 0 ]]; then
+    echo "Skipped:   ${skipped} file(s) not downloaded yet"
+  fi
+  echo "Clips:     about ${VJ_SPLIT_SEGMENT_SEC} seconds each"
+  echo "Files that share the text before __ share one subfolder."
+  echo "A file with no __ gets its own subfolder, named from that file."
+  echo "Originals stay in place. Running this again replaces clips in those subfolders."
+  echo ""
+}
+
+if [[ -d "$resolved" ]]; then
+  preview_folder "$resolved" || exit 1
+  exec "${SCRIPT_DIR}/vj-background-start.sh" \
+    "$JOB" \
+    "make ${JOB}-status" \
+    "$LOG" \
+    "${SCRIPT_DIR}/vj-run-limited.sh" \
+    "${SCRIPT_DIR}/convert-vj-splits" \
+    "$resolved"
 fi
 
 if vj_split_is_dataless "$resolved"; then

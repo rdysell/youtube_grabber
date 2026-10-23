@@ -42,11 +42,11 @@ Safe to re-run; skips files already on disk. Only **one** `make youtube-vj` at a
 
 Safe to re-run; skips when a valid output already exists. **Starts in the background** like YouTube batch. Use `make convert-vj-status` for progress.
 
-## Split one video into clips (default 55 seconds)
+## Split a video or a folder into clips (default 55 seconds)
 
 | Command                                                    | Action                                                              |
 | ---------------------------------------------------------- | ------------------------------------------------------------------- |
-| `make convert-vj-splits` or `make convert-vj-splits-start` | Ask for a file path, then split it into ~55s clips                  |
+| `make convert-vj-splits` or `make convert-vj-splits-start` | Ask for a file or folder, then split into ~55s clips                |
 | `make convert-vj-splits-10s`                               | Same, with ~10s clips                                               |
 | `make convert-vj-splits-20s`                               | Same, with ~20s clips                                               |
 | `make convert-vj-splits-status`                            | Running? progress %, current clip, source, output folder, log tail |
@@ -55,15 +55,16 @@ Safe to re-run; skips when a valid output already exists. **Starts in the backgr
 
 Any whole number of seconds works the same way: `make convert-vj-splits-30s` is ~30s clips. From 1 to 86400.
 
-- Paste a full path when asked. Finder: select the video, then **Option + Command + C**. A paste with backslashes before spaces is fine.
-- **Output:** a short `*_clips` folder next to that file. The folder keeps a few title words plus the YouTube id when the file has one (`Abstract_Liquid_jgm58cbu0kw_clips`). The original stays where it is. This is a stream copy: resolution, codec, and quality stay as they are in the source (it does not re-encode to the 720p spec below).
+- Paste a full path when asked. Finder: select the video or folder, then **Option + Command + C**. A paste with backslashes before spaces is fine.
+- **One file:** a short `*_clips` folder next to that file. The folder keeps a few title words plus the YouTube id when the file has one (`Abstract_Liquid_jgm58cbu0kw_clips`). The original stays where it is. This is a stream copy: resolution, codec, and quality stay as they are in the source (it does not re-encode to the 720p spec below).
+- **A folder:** every video sitting in that folder (not inside subfolders) is split. Each file gets a subfolder named from the filename. Files that share the text before `__` share one subfolder: `Abstract_Liquid__1h-51-53_to_1h-52-50.mp4` and `Abstract_Liquid__1h-56-30_to_1h-57-21.mp4` both go in `Abstract_Liquid/`. `Slumber_Giants_The__0h-00-00_to_0h-00-56.mp4` goes in `Slumber_Giants_The/`. Originals stay put.
 - **Names:** the same short title as the folder, then the real span. Example: `Abstract_Liquid__0h-05-33_to_0h-06-25.mp4`. Hours are not zero-padded (`0h`, `1h`). Minutes and seconds stay two digits.
 - **Clips:** the number before the final `s` (`10s` is 10 seconds, `20s` is 20). Default is 55. Cuts land on keyframes, so a clip can be a little shorter or longer than the length you asked for.
 - **Log:** `~/.cache/yt-dlp/convert-vj-splits.log`
 - **State:** `~/.cache/yt-dlp/convert-vj-splits.{pid,state}`
 - **Details:** [docs/instructions/convert_vj_splits_instructions.md](docs/instructions/convert_vj_splits_instructions.md)
 
-The terminal comes back after the path is accepted. Use `make convert-vj-splits-status` for progress. Running it again on the **same** file replaces that clips folder. Only one `make convert-vj-splits` at a time.
+The terminal comes back after the path is accepted. Use `make convert-vj-splits-status` for progress. Running it again on the **same** file replaces that clips folder. Running it again on the **same** folder replaces the clips in each group subfolder. Only one `make convert-vj-splits` at a time.
 
 Example, `YouTube/Abstract fluids/1_Hour_of_Natural_Patterns_Ferns_Agate_Sea_Fans_River_Deltas_Rel_y8ONlczgiXA_1280x720_vj.mp4` (1:00:06) → 66 files in:
 

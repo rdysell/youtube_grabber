@@ -18,7 +18,9 @@ From the **repo root**:
 make convert-vj-splits
 ```
 
-Paste a full path when asked. In Finder, select the video and press **Option + Command + C**. A paste that still has backslashes before spaces is fine.
+Paste a full path when asked. In Finder, select the video or folder and press **Option + Command + C**. A paste that still has backslashes before spaces is fine.
+
+A folder splits every video file directly inside it. Files that share the text before `__` are written into one subfolder named after that shared beginning. `Abstract_Liquid__1h-51-53_to_1h-52-50.mp4` and `Abstract_Liquid__1h-56-30_to_1h-57-21.mp4` both land in `Abstract_Liquid/`. A file with no `__` gets its own subfolder. Clip times keep the start time already in the filename, so those two files do not overwrite each other. Originals stay in the folder you pasted.
 
 Log: `~/.cache/yt-dlp/convert-vj-splits.log` — state: `~/.cache/yt-dlp/convert-vj-splits.{pid,state}`.
 

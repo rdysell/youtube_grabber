@@ -1,6 +1,7 @@
 #!/bin/bash
-# Split one local video into clips (stream copy) next to the source file.
+# Split one local video, or every video in a folder, into clips (stream copy).
 # Default length is 55s. `make convert-vj-splits-20s` passes VJ_SPLIT_SEGMENT_SEC=20.
+# A folder gets one subfolder per filename. Files that share the text before __ share a subfolder.
 # Cuts follow keyframes, so a clip can be a little shorter or longer than that.
 # Filenames use the boundaries FFmpeg actually wrote.
 set -uo pipefail
@@ -26,11 +27,21 @@ FINALIZED=0
 RENAMED=0
 CSV_FOR_RENAME=""
 ON_TERM=0
+FILE_DONE_BASE=0
+TIME_OFFSET=""
+CLEAR_OUT=1
+FOLDER_MODE=0
+FOLDER_PATH=""
+FILE_FAILED=0
+GROUP_LIST=""
 
 log() { vj_log "$LOG" "$@"; }
 
 fail() {
   log "FAIL: $*"
+  if [[ -n "${GROUP_LIST:-}" ]]; then
+    rm -f "$GROUP_LIST" "${GROUP_LIST}.groups"
+  fi
   if [[ -n "${OUT:-}" ]]; then
     rm -f "$OUT/.source-path"
     vj_split_clear_source_marker "$OUT"
@@ -88,7 +99,7 @@ remove_temp_files() {
 }
 
 finalize_files() {
-  local file start end from to dest n=0 src
+  local file start end from to dest n=0 src seq=2
   [[ "$FINALIZED" -eq 1 ]] && return 0
   FINALIZED=1
   [[ -n "$OUT" && -d "$OUT" ]] || return 0
@@ -103,11 +114,20 @@ finalize_files() {
       end=${end//$'\r'/}
       file=$(basename "$file")
       [[ -n "$file" && -f "$OUT/$file" ]] || continue
+      if [[ -n "${TIME_OFFSET:-}" ]]; then
+        start=$(awk -v a="${start:-0}" -v b="$TIME_OFFSET" 'BEGIN { printf "%.3f", (a+0)+(b+0) }')
+        end=$(awk -v a="${end:-0}" -v b="$TIME_OFFSET" 'BEGIN { printf "%.3f", (a+0)+(b+0) }')
+      fi
       from=$(vj_split_fmt_hms "${start:-0}")
       to=$(vj_split_fmt_hms "${end:-0}")
       dest="${STEM}__${from}_to_${to}.mp4"
       if [[ -e "$OUT/$dest" && "$dest" != "$file" ]]; then
-        dest="${STEM}__${from}_to_${to}_$(printf '%02d' "$((n + 1))").mp4"
+        seq=2
+        dest="${STEM}__${from}_to_${to}_$(printf '%02d' "$seq").mp4"
+        while [[ -e "$OUT/$dest" && "$dest" != "$file" ]]; do
+          seq=$((seq + 1))
+          dest="${STEM}__${from}_to_${to}_$(printf '%02d' "$seq").mp4"
+        done
       fi
       if [[ "$file" != "$dest" ]]; then
         mv -f "$OUT/$file" "$OUT/$dest"
@@ -117,7 +137,8 @@ finalize_files() {
     done <"$src"
   fi
   RENAMED=$n
-  vj_state_set "$JOB" DONE "$RENAMED"
+  FILE_DONE_BASE=$((FILE_DONE_BASE + RENAMED))
+  vj_state_set "$JOB" DONE "$FILE_DONE_BASE"
   remove_temp_files
 }
 
@@ -169,21 +190,332 @@ on_term() {
     capture_csv 0
   fi
   finalize_files || true
+  if [[ -n "${GROUP_LIST:-}" ]]; then
+    rm -f "$GROUP_LIST" "${GROUP_LIST}.groups"
+  fi
   vj_state_set "$JOB" PHASE "stopped"
   vj_state_set "$JOB" CURRENT ""
   exit 0
 }
 
-main() {
-  local raw_stem parent stem folder_stem duration estimate showing done_n baseline="" ffmpeg_rc=0
+# Split $VIDEO into $OUT. CLEAR_OUT=1 replaces clips already in that folder.
+# Returns 2 when this file should be the last one.
+split_current() {
+  local duration estimate showing file_done done_n baseline="" ffmpeg_rc=0
 
-  VIDEO="${1:-}"
-  if [[ -z "$VIDEO" ]]; then
-    echo "Usage: convert-vj-splits /path/to/video.mp4" >&2
+  FINALIZED=0
+  CSV_FOR_RENAME=""
+  FFMPEG_PID=""
+  STOP_MODE=""
+  RENAMED=0
+
+  if vj_split_is_dataless "$VIDEO"; then
+    if [[ "$FOLDER_MODE" == 1 ]]; then
+      log "SKIP: not downloaded yet: $VIDEO"
+      FILE_FAILED=$((FILE_FAILED + 1))
+      return 1
+    fi
+    fail "file is in iCloud and not downloaded yet: $VIDEO"
+  fi
+  if ! vj_split_has_video "$VIDEO"; then
+    if [[ "$FOLDER_MODE" == 1 ]]; then
+      log "SKIP: no video stream: $VIDEO"
+      FILE_FAILED=$((FILE_FAILED + 1))
+      return 1
+    fi
+    fail "no video stream: $VIDEO"
+  fi
+  duration=$(vj_split_duration "$VIDEO")
+  if ! vj_split_is_number "$duration"; then
+    if [[ "$FOLDER_MODE" == 1 ]]; then
+      log "SKIP: could not read duration: $VIDEO"
+      FILE_FAILED=$((FILE_FAILED + 1))
+      return 1
+    fi
+    fail "could not read duration: $VIDEO"
+  fi
+
+  estimate=$(vj_split_estimate_count "$duration")
+  [[ "$estimate" =~ ^[0-9]+$ ]] || estimate=0
+
+  mkdir -p "$OUT" || fail "could not create $OUT"
+  if [[ "$CLEAR_OUT" == 1 ]]; then
+    if [[ "$FOLDER_MODE" == 1 ]]; then
+      vj_split_set_source_marker "$OUT" "$FOLDER_PATH" || fail "could not write split source marker"
+    else
+      vj_split_set_source_marker "$OUT" "$VIDEO" || fail "could not write split source marker"
+    fi
+    clear_previous_clips
+  fi
+
+  vj_state_set "$JOB" OUTPUT "$OUT"
+  vj_state_set "$JOB" PHASE "splitting"
+  vj_state_set "$JOB" CURRENT "$(basename "$VIDEO") clip 1/~${estimate}"
+
+  log "Splitting $(basename "$VIDEO") into about ${estimate} clip(s) of ${VJ_SPLIT_SEGMENT_SEC}s (keyframe aligned, stream copy)"
+  log "Source: $VIDEO"
+  log "Output: $OUT"
+
+  start_ffmpeg &
+  FFMPEG_PID=$!
+
+  while kill -0 "$FFMPEG_PID" 2>/dev/null; do
+    file_done=$(count_completed)
+    [[ "$file_done" =~ ^[0-9]+$ ]] || file_done=0
+    done_n=$((FILE_DONE_BASE + file_done))
+    vj_state_set "$JOB" DONE "$done_n"
+    showing=$((file_done + 1))
+    if [[ "$estimate" -gt 0 && "$showing" -gt "$estimate" ]]; then
+      showing=$estimate
+    fi
+    vj_state_set "$JOB" CURRENT "$(basename "$VIDEO") clip ${showing}/~${estimate}"
+    if [[ "$(vj_state_get "$JOB" STOP_AFTER)" == "1" ]]; then
+      if [[ -z "$baseline" ]]; then
+        baseline=$file_done
+        log "Stop-after-current: finishing clip $((file_done + 1)), then stopping."
+      fi
+      if [[ "$file_done" -gt "$baseline" ]]; then
+        STOP_MODE="next"
+        log "Stopping before the next clip."
+        capture_csv "$file_done"
+        vj_kill_tree "$FFMPEG_PID" || true
+        break
+      fi
+    fi
+    sleep 1
+  done
+
+  if [[ -n "$FFMPEG_PID" ]]; then
+    wait "$FFMPEG_PID" 2>/dev/null || ffmpeg_rc=$?
+  fi
+  FFMPEG_PID=""
+
+  if [[ "$STOP_MODE" != "next" && "$(vj_state_get "$JOB" STOP_AFTER)" == "1" && "$ffmpeg_rc" -eq 0 ]]; then
+    STOP_MODE="next"
+  fi
+
+  if [[ "$STOP_MODE" == "next" ]]; then
+    finalize_files
+    return 2
+  fi
+
+  if [[ "$ffmpeg_rc" -ne 0 ]]; then
+    capture_csv 0
+    finalize_files
+    log "FAIL: ffmpeg exited ${ffmpeg_rc} for $VIDEO"
+    if [[ "$FOLDER_MODE" == 1 ]]; then
+      FILE_FAILED=$((FILE_FAILED + 1))
+      return 1
+    fi
+    vj_state_set "$JOB" PHASE "failed"
+    vj_state_set "$JOB" CURRENT ""
+    vj_print_summary "$JOB" "$LOG" "$(vj_splits_label)"
     exit 1
   fi
-  if [[ ! -f "$VIDEO" ]]; then
-    echo "No video file at: ${VIDEO}" >&2
+
+  capture_csv 0
+  finalize_files
+  if [[ "$RENAMED" -lt 1 ]]; then
+    log "FAIL: no clips were written for $VIDEO"
+    if [[ "$FOLDER_MODE" == 1 ]]; then
+      FILE_FAILED=$((FILE_FAILED + 1))
+      return 1
+    fi
+    vj_state_set "$JOB" PHASE "failed"
+    vj_state_set "$JOB" CURRENT ""
+    vj_print_summary "$JOB" "$LOG" "$(vj_splits_label)"
+    exit 1
+  fi
+  return 0
+}
+
+finish_job() {
+  local phase="$1"
+  if [[ "$phase" == "finished" ]]; then
+    vj_state_set "$JOB" TOTAL "$FILE_DONE_BASE"
+  fi
+  vj_state_set "$JOB" DONE "$FILE_DONE_BASE"
+  vj_state_set "$JOB" PHASE "$phase"
+  vj_state_set "$JOB" CURRENT ""
+  if [[ "$phase" == "finished" ]]; then
+    log "Finished: ${FILE_DONE_BASE} clip(s)"
+  elif [[ "$phase" == "stopped_after_current" ]]; then
+    vj_state_set "$JOB" STOP_AFTER "0"
+    log "Stopped after the current clip (${FILE_DONE_BASE} clip(s) saved)."
+  fi
+  vj_print_summary "$JOB" "$LOG" "$(vj_splits_label)"
+}
+
+split_one_file() {
+  local parent raw_stem stem folder_stem duration estimate rc=0 off=""
+
+  parent=$(dirname "$VIDEO")
+  if [[ ! -w "$parent" ]]; then
+    fail "cannot write next to the source: $parent"
+  fi
+  if vj_split_is_dataless "$VIDEO"; then
+    fail "file is in iCloud and not downloaded yet: $VIDEO"
+  fi
+  if ! vj_split_has_video "$VIDEO"; then
+    fail "no video stream: $VIDEO"
+  fi
+  duration=$(vj_split_duration "$VIDEO")
+  if ! vj_split_is_number "$duration"; then
+    fail "could not read duration: $VIDEO"
+  fi
+  raw_stem=$(vj_split_sanitize "$(basename "${VIDEO%.*}")")
+  stem=$(vj_split_clip_title "$VIDEO")
+  folder_stem=$(vj_split_folder_stem "$VIDEO")
+  STEM="$stem"
+  TIME_OFFSET=""
+  off=$(vj_split_name_start_sec "$VIDEO" || true)
+  if [[ -n "$off" ]]; then
+    TIME_OFFSET=$off
+  fi
+  OUT=$(vj_split_pick_dir "$parent" "$folder_stem" "$VIDEO") || fail "could not choose an output folder"
+  if [[ "$OUT" == "$parent" || "$VIDEO" == "$OUT"/* ]]; then
+    fail "refusing to write clips over the source folder"
+  fi
+  estimate=$(vj_split_estimate_count "$duration")
+  [[ "$estimate" =~ ^[0-9]+$ ]] || estimate=0
+  vj_state_set "$JOB" TOTAL "$estimate"
+  CLEAR_OUT=1
+  if [[ "$raw_stem" != "$stem" ]]; then
+    log "Name shortened: ${raw_stem} -> ${stem}"
+  fi
+  split_current || rc=$?
+  if [[ "$rc" -eq 2 ]]; then
+    finish_job stopped_after_current
+    exit 0
+  fi
+  if [[ "$rc" -ne 0 ]]; then
+    exit 1
+  fi
+  finish_job finished
+}
+
+split_folder() {
+  local list groups file key prev="" rc=0 off="" total=0 nfiles=0 duration estimate
+
+  FOLDER_PATH="$VIDEO"
+  FOLDER_MODE=1
+  if [[ ! -w "$FOLDER_PATH" ]]; then
+    fail "cannot write in the folder: $FOLDER_PATH"
+  fi
+  list=$(mktemp)
+  GROUP_LIST="$list"
+  vj_split_folder_candidates "$FOLDER_PATH" | sort >"$list"
+  if [[ ! -s "$list" ]]; then
+    rm -f "$list"
+    GROUP_LIST=""
+    fail "no video files in $FOLDER_PATH"
+  fi
+
+  groups="${list}.groups"
+  : >"$groups"
+  vj_state_set "$JOB" CURRENT "reading durations"
+  while IFS= read -r file; do
+    [[ -n "$file" ]] || continue
+    if vj_split_is_dataless "$file"; then
+      log "SKIP: not downloaded yet: $file"
+      FILE_FAILED=$((FILE_FAILED + 1))
+      continue
+    fi
+    if ! vj_split_has_video "$file"; then
+      log "SKIP: no video stream: $file"
+      FILE_FAILED=$((FILE_FAILED + 1))
+      continue
+    fi
+    duration=$(vj_split_duration "$file")
+    if ! vj_split_is_number "$duration"; then
+      log "SKIP: could not read duration: $file"
+      FILE_FAILED=$((FILE_FAILED + 1))
+      continue
+    fi
+    estimate=$(vj_split_estimate_count "$duration")
+    [[ "$estimate" =~ ^[0-9]+$ ]] || estimate=0
+    total=$((total + estimate))
+    nfiles=$((nfiles + 1))
+    printf '%s\t%s\n' "$(vj_split_group_key "$file")" "$file" >>"$groups"
+  done <"$list"
+  sort -o "$groups" "$groups"
+
+  if [[ "$nfiles" -lt 1 ]]; then
+    rm -f "$list" "$groups"
+    GROUP_LIST=""
+    fail "no video files could be read in $FOLDER_PATH"
+  fi
+
+  vj_state_set "$JOB" TOTAL "$total"
+  log "Folder: $FOLDER_PATH (${nfiles} file(s), about ${total} clip(s) of ${VJ_SPLIT_SEGMENT_SEC}s)"
+
+  prev=""
+  while IFS=$'\t' read -r key file; do
+    [[ -n "$key" && -n "$file" ]] || continue
+    if [[ "$(vj_state_get "$JOB" STOP_AFTER)" == "1" ]]; then
+      rm -f "$list" "$groups"
+      GROUP_LIST=""
+      finish_job stopped_after_current
+      exit 0
+    fi
+    VIDEO="$file"
+    STEM="$key"
+    OUT="${FOLDER_PATH}/${key}"
+    if [[ "$OUT" == "$FOLDER_PATH" || "$file" == "$OUT"/* ]]; then
+      log "FAIL: refusing output folder $OUT"
+      FILE_FAILED=$((FILE_FAILED + 1))
+      continue
+    fi
+    TIME_OFFSET=""
+    off=$(vj_split_name_start_sec "$file" || true)
+    if [[ -n "$off" ]]; then
+      TIME_OFFSET=$off
+    fi
+    if [[ "$key" != "$prev" ]]; then
+      CLEAR_OUT=1
+      prev=$key
+      log "Group: ${key}/"
+    else
+      CLEAR_OUT=0
+    fi
+    rc=0
+    split_current || rc=$?
+    if [[ "$rc" -eq 2 ]]; then
+      rm -f "$list" "$groups"
+      GROUP_LIST=""
+      finish_job stopped_after_current
+      exit 0
+    fi
+  done <"$groups"
+
+  rm -f "$list" "$groups"
+  GROUP_LIST=""
+  if [[ "$FILE_DONE_BASE" -lt 1 ]]; then
+    vj_state_set "$JOB" PHASE "failed"
+    vj_state_set "$JOB" CURRENT ""
+    log "FAIL: no clips were written"
+    vj_print_summary "$JOB" "$LOG" "$(vj_splits_label)"
+    exit 1
+  fi
+  if [[ "$FILE_FAILED" -gt 0 ]]; then
+    log "Finished with ${FILE_FAILED} file(s) skipped or failed. ${FILE_DONE_BASE} clip(s) saved."
+  fi
+  finish_job finished
+  if [[ "$FILE_FAILED" -gt 0 ]]; then
+    exit 1
+  fi
+}
+
+main() {
+  local target="${1:-}"
+
+  if [[ -z "$target" ]]; then
+    echo "Usage: convert-vj-splits /path/to/video.mp4" >&2
+    echo "       convert-vj-splits /path/to/folder" >&2
+    exit 1
+  fi
+  if [[ ! -f "$target" && ! -d "$target" ]]; then
+    echo "No video file or folder at: ${target}" >&2
     exit 1
   fi
   if ! command -v ffmpeg >/dev/null 2>&1 || ! command -v ffprobe >/dev/null 2>&1; then
@@ -205,124 +537,15 @@ main() {
   vj_state_set "$JOB" TOTAL ""
   vj_state_set "$JOB" CURRENT "reading duration"
   vj_state_set "$JOB" STOP_AFTER "0"
-  vj_state_set "$JOB" SOURCE "$VIDEO"
+  vj_state_set "$JOB" SOURCE "$target"
   vj_state_set "$JOB" OUTPUT ""
 
-  if vj_split_is_dataless "$VIDEO"; then
-    fail "file is in iCloud and not downloaded yet: $VIDEO"
+  VIDEO="$target"
+  if [[ -d "$target" ]]; then
+    split_folder
+  else
+    split_one_file
   fi
-  if ! vj_split_has_video "$VIDEO"; then
-    fail "no video stream: $VIDEO"
-  fi
-  duration=$(vj_split_duration "$VIDEO")
-  if ! vj_split_is_number "$duration"; then
-    fail "could not read duration: $VIDEO"
-  fi
-
-  parent=$(dirname "$VIDEO")
-  if [[ ! -w "$parent" ]]; then
-    fail "cannot write next to the source: $parent"
-  fi
-  raw_stem=$(vj_split_sanitize "$(basename "${VIDEO%.*}")")
-  stem=$(vj_split_clip_title "$VIDEO")
-  folder_stem=$(vj_split_folder_stem "$VIDEO")
-  STEM="$stem"
-  OUT=$(vj_split_pick_dir "$parent" "$folder_stem" "$VIDEO") || fail "could not choose an output folder"
-  if [[ "$OUT" == "$parent" || "$VIDEO" == "$OUT"/* ]]; then
-    fail "refusing to write clips over the source folder"
-  fi
-  estimate=$(vj_split_estimate_count "$duration")
-  [[ "$estimate" =~ ^[0-9]+$ ]] || estimate=0
-
-  vj_state_set "$JOB" OUTPUT "$OUT"
-  vj_state_set "$JOB" TOTAL "$estimate"
-  vj_state_set "$JOB" PHASE "splitting"
-  vj_state_set "$JOB" CURRENT "clip 1/~${estimate}"
-
-  log "Splitting into about ${estimate} clip(s) of ${VJ_SPLIT_SEGMENT_SEC}s (keyframe aligned, stream copy)"
-  log "Source: $VIDEO"
-  log "Output: $OUT"
-  if [[ "$raw_stem" != "$stem" ]]; then
-    log "Name shortened: ${raw_stem} -> ${stem}"
-  fi
-
-  mkdir -p "$OUT" || fail "could not create $OUT"
-  vj_split_set_source_marker "$OUT" "$VIDEO" || fail "could not write split source marker"
-  clear_previous_clips
-
-  start_ffmpeg &
-  FFMPEG_PID=$!
-
-  while kill -0 "$FFMPEG_PID" 2>/dev/null; do
-    done_n=$(count_completed)
-    [[ "$done_n" =~ ^[0-9]+$ ]] || done_n=0
-    vj_state_set "$JOB" DONE "$done_n"
-    showing=$((done_n + 1))
-    if [[ "$estimate" -gt 0 && "$showing" -gt "$estimate" ]]; then
-      showing=$estimate
-    fi
-    vj_state_set "$JOB" CURRENT "clip ${showing}/~${estimate}"
-    if [[ "$(vj_state_get "$JOB" STOP_AFTER)" == "1" ]]; then
-      if [[ -z "$baseline" ]]; then
-        baseline=$done_n
-        log "Stop-after-current: finishing clip $((done_n + 1)), then stopping."
-      fi
-      if [[ "$done_n" -gt "$baseline" ]]; then
-        STOP_MODE="next"
-        log "Stopping before the next clip."
-        capture_csv "$done_n"
-        vj_kill_tree "$FFMPEG_PID" || true
-        break
-      fi
-    fi
-    sleep 1
-  done
-
-  if [[ -n "$FFMPEG_PID" ]]; then
-    wait "$FFMPEG_PID" 2>/dev/null || ffmpeg_rc=$?
-  fi
-  FFMPEG_PID=""
-
-  if [[ "$STOP_MODE" != "next" && "$(vj_state_get "$JOB" STOP_AFTER)" == "1" && "$ffmpeg_rc" -eq 0 ]]; then
-    STOP_MODE="next"
-  fi
-
-  if [[ "$STOP_MODE" == "next" ]]; then
-    finalize_files
-    vj_state_set "$JOB" STOP_AFTER "0"
-    vj_state_set "$JOB" PHASE "stopped_after_current"
-    vj_state_set "$JOB" CURRENT ""
-    log "Stopped after the current clip (${RENAMED} clip(s) saved)."
-    vj_print_summary "$JOB" "$LOG" "$(vj_splits_label)"
-    exit 0
-  fi
-
-  if [[ "$ffmpeg_rc" -ne 0 ]]; then
-    capture_csv 0
-    finalize_files
-    log "FAIL: ffmpeg exited ${ffmpeg_rc}"
-    vj_state_set "$JOB" PHASE "failed"
-    vj_state_set "$JOB" CURRENT ""
-    vj_print_summary "$JOB" "$LOG" "$(vj_splits_label)"
-    exit 1
-  fi
-
-  capture_csv 0
-  finalize_files
-  if [[ "$RENAMED" -lt 1 ]]; then
-    log "FAIL: no clips were written"
-    vj_state_set "$JOB" PHASE "failed"
-    vj_state_set "$JOB" CURRENT ""
-    vj_print_summary "$JOB" "$LOG" "$(vj_splits_label)"
-    exit 1
-  fi
-
-  vj_state_set "$JOB" TOTAL "$RENAMED"
-  vj_state_set "$JOB" DONE "$RENAMED"
-  vj_state_set "$JOB" PHASE "finished"
-  vj_state_set "$JOB" CURRENT ""
-  log "Finished: ${RENAMED} clip(s) in ${OUT}"
-  vj_print_summary "$JOB" "$LOG" "$(vj_splits_label)"
 }
 
 main "$@"
