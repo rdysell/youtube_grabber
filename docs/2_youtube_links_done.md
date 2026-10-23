@@ -71,3 +71,29 @@
   - Path: `/Users/dysell/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube/Abstract tunnels/4K Multiverse Travel with Calming Music! 1 Hour Fractals Screensaver! Relaxing Video for Meditation [QxzU3FBy57k].mp4`
   - duration=3662.041667 size=5,7GiB
 
+
+# Aurora
+
+- **Watch The Aurora Borealis & The Northern Lights in 4K Video Ultra HD with Relaxing Music**
+  - URL: https://youtu.be/miqbNFmbN2Q
+  - Path: `/Users/dysell/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube/Aurora/Watch The Aurora Borealis & The Northern Lights in 4K Video Ultra HD with Relaxing Music [miqbNFmbN2Q].mp4`
+  - duration=10825.333333 size=2.0GiB
+
+
+# Flying in the clouds
+
+- **Flying Above Purple Clouds at Sunset 🌬️ Wind Sounds for Sleep, Study & Relaxation ✨ Sky Ambience**
+  - URL: https://youtu.be/w1E2zT_kEcw
+  - Path: `/Users/dysell/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube/Flying in the clouds/Flying Above Purple Clouds at Sunset 🌬️ Wind Sounds for Sleep, Study & Relaxation ✨ Sky Ambience [w1E2zT_kEcw].mp4`
+  - duration=14400.000000 size=897MiB
+
+- **Abstract Liquid Background Video (No Sound) — 4K UHD Abstract Liquid Screensaver**
+  - URL: https://youtu.be/jgm58cbu0kw
+  - Path: `/Users/dysell/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube/Abstract fluids/Abstract Liquid Background Video (No Sound) — 4K UHD Abstract Liquid Screensaver [jgm58cbu0kw].mp4`
+  - duration=10983.416667 size=4.8GiB
+
+- **Abstract Ink & Smoke Background Video (No Sound) — 4K UHD Abstract Liquid Screensaver 9 Hours**
+  - URL: https://youtu.be/X5U86C4aXEc
+  - Path: `/Users/dysell/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube/Abstract fluids/Abstract Ink & Smoke Background Video (No Sound) — 4K UHD Abstract Liquid Screensaver 9 Hours [X5U86C4aXEc].mp4`
+  - duration=32400.000000 size=7.7GiB
+

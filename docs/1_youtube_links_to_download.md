@@ -1,15 +1,11 @@
 # Aurora
 
-https://youtu.be/miqbNFmbN2Q?si=bXAaM62SF45wMQ1O
 
 # Flying in the clouds
 
-https://youtu.be/w1E2zT_kEcw?si=aNq7Pf0ELWrX7gBU
 
 # Abstract fluids
 
-https://youtu.be/jgm58cbu0kw?si=4MFBEu2Kc9ZxcFiI
-https://youtu.be/X5U86C4aXEc?si=Iy_f0pm_TgkP2UIs
 https://youtu.be/wjQq0nSGS28?si=fvjIPa2RT00xGC5R
 https://youtu.be/hOgVAYpHPCc?si=yQtaP6aPzqbfN4d_
 https://youtu.be/-KS0QrFHAOU?si=SVVQweqclitD2qZ_
