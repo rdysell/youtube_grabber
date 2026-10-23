@@ -12,6 +12,10 @@ Clips for Fosfora VJ backgrounds (projector at 1080p; Fosfora scales sources up)
 **Output:** `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube/<group>/`  
 `<group>` is the `# Heading` in the queue (e.g. `Abstract fluids`).
 
+**Filenames:** ASCII-only, underscores, no emoji or `｜` / `⧸` —  
+`Short_Title_VIDEO_ID_1280x720_vj.mp4` (e.g. `Cozy_Fireplace_4K_HDR_60fps_qeWLeTQAjzU_1280x720_vj.mp4`).  
+Re-name existing library: `docs/scripts/vj-rename-youtube-library.sh`.
+
 When a download finishes, remove its URL from `1_…` and record it in `2_…` under the same group (use `# Misc` if needed).
 
 ## Batch script (preferred)

@@ -7,6 +7,8 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 source "${SCRIPT_DIR}/vj-job-common.sh"
 # shellcheck source=vj-limits.sh
 source "${SCRIPT_DIR}/vj-limits.sh"
+# shellcheck source=vj-filename.sh
+source "${SCRIPT_DIR}/vj-filename.sh"
 
 ICLOUD="${HOME}/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies"
 INBOX="${ICLOUD}/Convert_these_media_files"
@@ -32,11 +34,6 @@ is_video_file() {
   return 1
 }
 
-dot_to_underscore() {
-  local s="$1"
-  echo "$s" | tr '.' '_' | tr ' ' '_' | tr -cd '[:alnum:]_-'
-}
-
 # Baraka.1992.1080p... -> Baraka_1992_1280x720_vj.mp4
 output_name_for() {
   local path="$1"
@@ -44,7 +41,7 @@ output_name_for() {
   base=$(basename "$path")
   stem="${base%.*}"
   title="${stem%%.*}"
-  title=$(dot_to_underscore "$title")
+  title=$(vj_sanitize_title "$title" 48)
   year=""
   IFS='.' read -ra parts <<< "$stem"
   for part in "${parts[@]}"; do
@@ -67,7 +64,7 @@ archive_name_for() {
   base=$(basename "$path")
   ext="${base##*.}"
   stem="${base%.*}"
-  sanitized=$(dot_to_underscore "$stem")
+  sanitized=$(vj_sanitize_title "$stem" 80)
   suffix="_vj-processed_org_file"
   max=100
   if ((${#sanitized} + ${#suffix} > max)); then

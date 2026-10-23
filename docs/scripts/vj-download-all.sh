@@ -5,6 +5,8 @@ set -uo pipefail
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 # shellcheck source=vj-job-common.sh
 source "${SCRIPT_DIR}/vj-job-common.sh"
+# shellcheck source=vj-filename.sh
+source "${SCRIPT_DIR}/vj-filename.sh"
 
 BASE="/Users/dysell/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube"
 LOG="${VJ_CACHE}/vj-batch.log"
@@ -51,7 +53,7 @@ file_meta() {
 
 append_done() {
   local group="$1" url="$2" title="$3" path="$4" meta="$5" id="$6"
-  if grep -q "\[${id}\]" "$DONE" 2>/dev/null; then
+  if grep -q "_${id}_" "$DONE" 2>/dev/null || grep -q "\[${id}\]" "$DONE" 2>/dev/null; then
     return 0
   fi
   if ! grep -q "^# ${group}$" "$DONE" 2>/dev/null; then
@@ -72,6 +74,13 @@ remove_from_todo() {
   tmp=$(mktemp)
   grep -v "$id" "$TODO" > "$tmp" || true
   mv "$tmp" "$TODO"
+}
+
+finalize_outfile() {
+  local url="$1" path="$2" id title
+  id=$(video_id "$url")
+  title=$(short_title "$url")
+  vj_finalize_youtube_file "$path" "$id" "$title"
 }
 
 download_one_return() {
@@ -96,6 +105,7 @@ download_one() {
   if [[ -n "$outfile" ]] && is_valid_vj_output "$outfile"; then
     log "SKIP existing [$group] id=$id"
     title=$(short_title "$url")
+    outfile=$(finalize_outfile "$url" "$outfile")
     meta=$(file_meta "$outfile")
     append_done "$group" "$url" "$title" "$outfile" "$meta" "$id"
     remove_from_todo "$id"
@@ -104,12 +114,13 @@ download_one() {
   fi
   if [[ -n "$outfile" ]]; then
     log "RE-ENCODE incomplete VJ file [$group] id=$id"
-    "${HOME}/.config/yt-dlp/vj-720.sh" "$outfile" || {
+    title=$(short_title "$url")
+    "${HOME}/.config/yt-dlp/vj-720.sh" "$outfile" "$id" "$title" || {
       log "FAIL re-encode [$group] $url"
       download_one_return 1
     }
+    outfile=$(finalize_outfile "$url" "$outfile")
     if is_valid_vj_output "$outfile"; then
-      title=$(short_title "$url")
       meta=$(file_meta "$outfile")
       append_done "$group" "$url" "$title" "$outfile" "$meta" "$id"
       remove_from_todo "$id"
@@ -147,6 +158,7 @@ download_one() {
   fi
 
   title=$(short_title "$url")
+  outfile=$(finalize_outfile "$url" "$outfile")
   meta=$(file_meta "$outfile")
   append_done "$group" "$url" "$title" "$outfile" "$meta" "$id"
   remove_from_todo "$id"
