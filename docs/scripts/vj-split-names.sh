@@ -1,9 +1,27 @@
 # Shared naming for convert-vj-splits.
-# Clip names use letters, numbers, "_" and "-" only.
-# The part before ".mp4" is kept within 100 characters (same cap as convert-vj archive names).
+# Clip files: Short_Title__0h-05-33_to_0h-06-25.mp4
+# Folder: Short_Title_YouTubeId_clips
 
-VJ_SPLIT_SEGMENT_SEC=55
-VJ_SPLIT_NAME_MAX=100
+# Clip length in seconds. Default 55.
+# `make convert-vj-splits-20s` exports VJ_SPLIT_SEGMENT_SEC=20 before these scripts run.
+# Shared by the clips folder and every clip file. A YouTube id is added on the folder only.
+VJ_SPLIT_FOLDER_TITLE_MAX=24
+
+# Keep a passed-in length, otherwise 55. Whole seconds from 1 to 86400.
+vj_split_apply_segment_sec() {
+  local sec="${VJ_SPLIT_SEGMENT_SEC:-55}"
+  if [[ ! "$sec" =~ ^[0-9]+$ ]]; then
+    echo "Clip length must be a whole number of seconds. Example: make convert-vj-splits-20s" >&2
+    return 1
+  fi
+  sec=$((10#$sec))
+  if [[ "$sec" -lt 1 || "$sec" -gt 86400 ]]; then
+    echo "Clip length must be from 1 to 86400 seconds (got ${sec})." >&2
+    return 1
+  fi
+  VJ_SPLIT_SEGMENT_SEC=$sec
+  export VJ_SPLIT_SEGMENT_SEC
+}
 
 vj_split_sanitize() {
   local s="$1"
@@ -23,13 +41,30 @@ vj_split_sanitize() {
   printf '%s\n' "$s"
 }
 
-# Seconds -> 00-00-00 (hyphens, so the name is safe on every filesystem).
+# Seconds -> 0h-05-33. Hours are not zero-padded. Minutes and seconds stay two digits.
 vj_split_fmt_hms() {
   awk -v x="$1" 'BEGIN {
     if (x == "" || (x + 0) < 0) x = 0
     n = int(x + 0.5)
-    printf "%02d-%02d-%02d", int(n/3600), int(n/60)%60, n%60
+    printf "%dh-%02d-%02d", int(n/3600), int(n/60)%60, n%60
   }'
+}
+
+# 00-05-33 -> 0h-05-33. Leaves a stamp alone when it already uses the h form.
+vj_split_reformat_stamp() {
+  local stamp="$1" h m s
+  if [[ "$stamp" =~ ^([0-9]+)h-([0-9]{2})-([0-9]{2})$ ]]; then
+    printf '%s\n' "$stamp"
+    return 0
+  fi
+  if [[ "$stamp" =~ ^([0-9]{2})-([0-9]{2})-([0-9]{2})$ ]]; then
+    h="${BASH_REMATCH[1]}"
+    m="${BASH_REMATCH[2]}"
+    s="${BASH_REMATCH[3]}"
+    printf '%dh-%s-%s\n' "$((10#$h))" "$m" "$s"
+    return 0
+  fi
+  printf '%s\n' "$stamp"
 }
 
 vj_split_fmt_clock() {
@@ -44,11 +79,9 @@ vj_split_is_number() {
   [[ "$1" =~ ^[0-9]+([.][0-9]+)?$ ]]
 }
 
-# Shorten a stem so stem + reserve stays within VJ_SPLIT_NAME_MAX.
 # Prefer cutting on "_" so the name does not end mid-word.
-vj_split_shorten() {
-  local stem="$1" reserve="$2" budget cut trimmed
-  budget=$((VJ_SPLIT_NAME_MAX - reserve))
+vj_split_shorten_to() {
+  local stem="$1" budget="$2" cut trimmed
   if [[ "$budget" -lt 12 ]]; then
     budget=12
   fi
@@ -82,15 +115,61 @@ vj_split_estimate_count() {
   }'
 }
 
-# Stem used for the clips folder and for every clip file.
-vj_split_stem_for() {
-  local video="$1" duration="$2" base stem end_stamp reserve
+# YouTube id from a VJ filename, or empty.
+vj_split_youtube_id() {
+  local video="$1" base raw id title
   base=$(basename "$video")
-  stem=${base%.*}
-  stem=$(vj_split_sanitize "$stem")
-  end_stamp=$(vj_split_fmt_hms "$duration")
-  reserve=$((1 + ${#end_stamp} + 4 + ${#end_stamp}))
-  vj_split_shorten "$stem" "$reserve"
+  raw=${base%.*}
+  id=""
+  if [[ "$raw" == *"["*"]"* ]]; then
+    id=${raw##*[}
+    id=${id%]*}
+    id=${id//[^A-Za-z0-9_-]/}
+  fi
+  title=$(vj_split_sanitize "$raw")
+  if [[ -z "$id" && "$title" == *_1280x720_vj ]]; then
+    title=${title%_1280x720_vj}
+    if [[ ${#title} -ge 12 ]]; then
+      id=${title:$((${#title} - 11))}
+      if [[ "$title" != *"_"$id ]]; then
+        id=""
+      fi
+    fi
+  fi
+  if [[ "$id" =~ ^[A-Za-z0-9_-]{11}$ ]]; then
+    printf '%s\n' "$id"
+  fi
+}
+
+# Short title shared by the folder and every clip. No YouTube id.
+# Abstract_Liquid_..._jgm58cbu0kw_1280x720_vj.mp4 -> Abstract_Liquid
+vj_split_clip_title() {
+  local video="$1" id title
+  id=$(vj_split_youtube_id "$video")
+  title=$(vj_split_sanitize "$(basename "${video%.*}")")
+  title=${title%_1280x720_vj}
+  if [[ -n "$id" && "$title" == *"_"$id ]]; then
+    title=${title%_"$id"}
+  fi
+  vj_split_shorten_to "$title" "$VJ_SPLIT_FOLDER_TITLE_MAX"
+}
+
+# Abstract_Liquid__0h-05-33_to_0h-06-25.mp4
+vj_split_clip_name() {
+  local title="$1" start="$2" end="$3"
+  printf '%s__%s_to_%s.mp4\n' "$title" "$(vj_split_fmt_hms "$start")" "$(vj_split_fmt_hms "$end")"
+}
+
+# Short folder name: the clip title, plus the YouTube id when the file has one.
+vj_split_folder_stem() {
+  local video="$1" title id
+  title=$(vj_split_clip_title "$video")
+  id=$(vj_split_youtube_id "$video")
+  if [[ -n "$id" ]]; then
+    printf '%s_%s\n' "$title" "$id"
+  else
+    printf '%s\n' "$title"
+  fi
 }
 
 # Sidecar in ~/.cache (not next to clips) so iCloud clip folders stay clean.
@@ -113,19 +192,69 @@ vj_split_clear_source_marker() {
   rm -f "$marker"
 }
 
-# Folder next to the source. Reuse it for the same file; otherwise stem_clips_2, ...
+# Cache marker, or a legacy .source-path left inside an older clips folder.
+vj_split_marker_video() {
+  local out_dir="$1" marker
+  marker=$(vj_split_source_marker "$out_dir")
+  if [[ -f "$marker" ]]; then
+    printf '%s\n' "$(<"$marker")"
+    return 0
+  fi
+  if [[ -f "$out_dir/.source-path" ]]; then
+    printf '%s\n' "$(<"$out_dir/.source-path")"
+    return 0
+  fi
+  return 1
+}
+
+# Directory under parent whose marker records this source video.
+vj_split_find_source_dir() {
+  local parent="$1" video="$2" d existing saved=0
+  shopt -q nullglob && saved=1
+  shopt -s nullglob
+  for d in "$parent"/*/; do
+    d="${d%/}"
+    existing=$(vj_split_marker_video "$d" || true)
+    if [[ -n "$existing" && "$existing" == "$video" ]]; then
+      if [[ "$saved" -eq 0 ]]; then
+        shopt -u nullglob
+      fi
+      printf '%s\n' "$d"
+      return 0
+    fi
+  done
+  if [[ "$saved" -eq 0 ]]; then
+    shopt -u nullglob
+  fi
+  return 1
+}
+
+# Folder next to the source. A previous clips folder for this same file is renamed
+# to the short name. A different file that shortens to the same name gets _2, _3, ...
 vj_split_pick_dir() {
   local parent="$1" stem="$2" video="$3"
   local base="${parent}/${stem}_clips"
-  local candidate="$base" n=2 marker existing
-  while [[ -d "$candidate" ]]; do
-    marker=$(vj_split_source_marker "$candidate")
-    if [[ ! -f "$marker" ]]; then
-      printf '%s\n' "$candidate"
+  local found="" candidate n=2 marked=""
+  found=$(vj_split_find_source_dir "$parent" "$video" || true)
+  if [[ -n "$found" ]]; then
+    if [[ "$found" == "$base" ]]; then
+      printf '%s\n' "$base"
       return 0
     fi
-    existing=$(<"$marker")
-    if [[ "$existing" == "$video" ]]; then
+    if [[ ! -e "$base" ]] && mv "$found" "$base"; then
+      vj_split_clear_source_marker "$found"
+      rm -f "$base/.source-path"
+      vj_split_set_source_marker "$base" "$video" || true
+      printf '%s\n' "$base"
+      return 0
+    fi
+    printf '%s\n' "$found"
+    return 0
+  fi
+  candidate="$base"
+  while [[ -d "$candidate" ]]; do
+    marked=$(vj_split_marker_video "$candidate" || true)
+    if [[ -z "$marked" || "$marked" == "$video" ]]; then
       printf '%s\n' "$candidate"
       return 0
     fi

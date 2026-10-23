@@ -44,3 +44,22 @@ convert-vj-splits-stop:
 
 convert-vj-splits-stop-next:
 	@./convert-vj-splits-stop-next
+
+# make convert-vj-splits-20s → 20 second clips. The number before the final s is the length.
+# Drop built-in suffix rules here so a typo is not compiled as assembler (.s).
+.SUFFIXES:
+# Explicit targets above (status, stop, start) win when they also match this pattern.
+.PHONY: vj-splits-seconds-force
+vj-splits-seconds-force:
+	@:
+
+convert-vj-splits-%s: vj-splits-seconds-force
+	@sec='$*'; \
+	case "$$sec" in \
+	  ''|*[!0-9]*) echo "Clip length must be a whole number of seconds. Example: make convert-vj-splits-20s" >&2; exit 1 ;; \
+	esac; \
+	sec=$$((10#$$sec)); \
+	if [ "$$sec" -lt 1 ] || [ "$$sec" -gt 86400 ]; then \
+	  echo "Clip length must be from 1 to 86400 seconds (got $$sec)." >&2; exit 1; \
+	fi; \
+	VJ_SPLIT_SEGMENT_SEC="$$sec" ./convert-vj-splits-start

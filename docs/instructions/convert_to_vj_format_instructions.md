@@ -58,4 +58,4 @@ Requires `ffmpeg` and `ffprobe` on the PATH.
 
 ## Split a finished file into 55-second clips
 
-`make convert-vj-splits` asks for one video path and writes ~55s clips into a folder next to that file. See [convert_vj_splits_instructions.md](./convert_vj_splits_instructions.md).
+`make convert-vj-splits` asks for one video path and writes ~55s clips into a folder next to that file. `make convert-vj-splits-20s` uses 20-second clips (any whole number of seconds works). See [convert_vj_splits_instructions.md](./convert_vj_splits_instructions.md).

@@ -250,3 +250,16 @@ convert-vj convert-vj-start convert-vj-status convert-vj-stop convert-vj-stop-ne
 convert-vj-splits convert-vj-splits-start convert-vj-splits-status \
 convert-vj-splits-stop convert-vj-splits-stop-next:
 	$(MAKE) -C docs/scripts VJ_INVOKE_DIR='$(CURDIR)' $@
+
+# make convert-vj-splits-20s → 20 second clips. The number before the final s is the length.
+# This is an explicit rule for the goals on the command line, not a pattern rule.
+# A pattern ending in s would let Make treat a typo as an assembler source (built-in %.s rule).
+.PHONY: vj-splits-seconds-force
+vj-splits-seconds-force:
+	@:
+
+VJ_SPLIT_SECONDS_GOALS := $(filter-out convert-vj-splits-status,$(filter convert-vj-splits-%s,$(MAKECMDGOALS)))
+ifneq ($(VJ_SPLIT_SECONDS_GOALS),)
+$(VJ_SPLIT_SECONDS_GOALS): vj-splits-seconds-force
+	$(MAKE) -C docs/scripts VJ_INVOKE_DIR='$(CURDIR)' $@
+endif

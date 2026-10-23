@@ -47,6 +47,18 @@ vj_state_get() {
   printf '%s' "$val"
 }
 
+# "VJ 20s split" when this run (or the last one) asked for 20-second clips.
+vj_splits_label() {
+  local sec="${VJ_SPLIT_SEGMENT_SEC:-}"
+  if [[ ! "$sec" =~ ^[0-9]+$ ]]; then
+    sec=$(vj_state_get convert-vj-splits SEGMENT_SEC)
+  fi
+  if [[ ! "$sec" =~ ^[0-9]+$ ]]; then
+    sec=55
+  fi
+  printf 'VJ %ss split' "$sec"
+}
+
 vj_job_running_pid() {
   local job="$1" pf pid
   pf=$(vj_pid_file "$job")
@@ -102,7 +114,7 @@ vj_job_stop() {
       vj_print_summary "$job" "${VJ_CACHE}/convert-vj.log" "Local VJ convert"
       ;;
     convert-vj-splits)
-      vj_print_summary "$job" "${VJ_CACHE}/convert-vj-splits.log" "VJ 55s split"
+      vj_print_summary "$job" "${VJ_CACHE}/convert-vj-splits.log" "$(vj_splits_label)"
       ;;
   esac
 }
@@ -205,7 +217,7 @@ vj_job_stop_graceful() {
   echo "${job}: stopped"
   case "$job" in
     convert-vj-splits)
-      vj_print_summary "$job" "${VJ_CACHE}/convert-vj-splits.log" "VJ 55s split"
+      vj_print_summary "$job" "${VJ_CACHE}/convert-vj-splits.log" "$(vj_splits_label)"
       ;;
   esac
 }

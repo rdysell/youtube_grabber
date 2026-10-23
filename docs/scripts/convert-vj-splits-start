@@ -7,6 +7,7 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 source "${SCRIPT_DIR}/vj-job-common.sh"
 # shellcheck source=vj-split-names.sh
 source "${SCRIPT_DIR}/vj-split-names.sh"
+vj_split_apply_segment_sec || exit 1
 
 JOB=convert-vj-splits
 LOG="${VJ_CACHE}/convert-vj-splits.log"
@@ -34,8 +35,8 @@ else
     echo "Run make convert-vj-splits from a terminal so you can paste the video path." >&2
     exit 1
   fi
-  cat >/dev/tty <<'EOF'
-Which file do you want to split into 55-second clips?
+  cat >/dev/tty <<EOF
+Which file do you want to split into ${VJ_SPLIT_SEGMENT_SEC}-second clips?
 Paste the full path. Finder: select the video, then Option + Command + C.
 A paste with backslashes before spaces is fine.
 
@@ -140,24 +141,26 @@ fi
 
 parent=$(dirname "$resolved")
 raw_stem=$(vj_split_sanitize "$(basename "${resolved%.*}")")
-stem=$(vj_split_stem_for "$resolved" "$duration")
-out=$(vj_split_pick_dir "$parent" "$stem" "$resolved")
+stem=$(vj_split_clip_title "$resolved")
+folder_stem=$(vj_split_folder_stem "$resolved")
+out=$(vj_split_pick_dir "$parent" "$folder_stem" "$resolved")
 estimate=$(vj_split_estimate_count "$duration")
 clock=$(vj_split_fmt_clock "$duration")
 
 echo ""
 echo "Source:    $resolved"
 echo "Duration:  $clock"
+example_to=$(vj_split_fmt_hms "$VJ_SPLIT_SEGMENT_SEC")
 echo "About:     ${estimate} clip(s) of ${VJ_SPLIT_SEGMENT_SEC} seconds"
 echo "Folder:    $out"
 if [[ "$raw_stem" != "$stem" ]]; then
-  echo "Filename shortened so each clip stays within ${VJ_SPLIT_NAME_MAX} characters before .mp4."
+  echo "Clip names use the short title: ${stem}__0h-00-00_to_${example_to}.mp4"
 fi
 if [[ -d "$out" ]]; then
   echo "This folder already has clips. They will be replaced."
 fi
 echo "Stream copy keeps the original resolution, codec, and quality."
-echo "Cuts land on keyframes, so a clip can be a little shorter or longer than 55 seconds."
+echo "Cuts land on keyframes, so a clip can be a little shorter or longer than ${VJ_SPLIT_SEGMENT_SEC} seconds."
 echo "The original file stays where it is."
 echo ""
 

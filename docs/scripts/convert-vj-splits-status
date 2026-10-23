@@ -4,4 +4,4 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 # shellcheck source=vj-job-common.sh
 source "${SCRIPT_DIR}/vj-job-common.sh"
 LOG="${VJ_CACHE}/convert-vj-splits.log"
-vj_print_status "convert-vj-splits" "$LOG" "VJ 55s split (make convert-vj-splits)"
+vj_print_status "convert-vj-splits" "$LOG" "$(vj_splits_label) (make convert-vj-splits)"

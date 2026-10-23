@@ -1,6 +1,6 @@
-# Split one video into 55-second clips
+# Split one video into clips
 
-Stream copy with FFmpeg. The original file stays where it is. Resolution, codec, frame rate, and quality stay as they are. Cuts land on keyframes, so a clip can be a little shorter or longer than 55 seconds. Filenames use the boundaries FFmpeg actually wrote.
+Stream copy with FFmpeg. The original file stays where it is. Resolution, codec, frame rate, and quality stay as they are. The default clip length is 55 seconds. `make convert-vj-splits-20s` uses 20 seconds, and any whole number from 1 to 86400 works the same way (`make convert-vj-splits-10s`). Cuts land on keyframes, so a clip can be a little shorter or longer than the length you asked for. Filenames use the boundaries FFmpeg actually wrote.
 
 ## Run
 
@@ -8,7 +8,8 @@ From the **repo root**:
 
 | Command | Job |
 |---------|-----|
-| `make convert-vj-splits` | Ask for a path, then split in the background |
+| `make convert-vj-splits` | Ask for a path, then split into ~55s clips |
+| `make convert-vj-splits-20s` | Same, with 20-second clips. Replace `20` with any whole number |
 | `make convert-vj-splits-status` | Running? progress %, current clip, log tail |
 | `make convert-vj-splits-stop` | Stop immediately (keep finished clips) |
 | `make convert-vj-splits-stop-next` | Finish the current clip, then stop |
@@ -26,11 +27,11 @@ Only one split at a time. The prompt returns as soon as the path checks out. Use
 ## What the script does
 
 1. Checks the file is on disk (an iCloud file that is not downloaded yet is refused) and has a video stream.
-2. Makes a folder **next to the source file**, named from the filename plus `_clips`.
-3. Copies the video into about-55-second clips (`-c copy`, no re-encode).
+2. Makes a short folder **next to the source file**. The name is a few title words, the YouTube id when the file has one, then `_clips` (for example `Abstract_Liquid_jgm58cbu0kw_clips`). An older long clips folder for that same file is renamed to this short name.
+3. Copies the video into clips of the length you asked for (`-c copy`, no re-encode). Default is about 55 seconds.
 4. Renames each clip from FFmpeg's recorded start and end.
 
-A long source name is shortened so `name + _00-00-00_to_00-00-55` stays within 100 characters. The extension sits after that. Spaces and dots become `_`. Other characters outside letters, numbers, `_`, and `-` are removed. The cut prefers a `_` so the name does not end mid-word.
+Clip names use that same short title, then the real start and end: `Abstract_Liquid__0h-05-33_to_0h-06-25.mp4`. Hours drop the leading zero and keep an `h`. Spaces and dots become `_`. Other characters outside letters, numbers, `_`, and `-` are removed. The cut prefers a `_` so the name does not end mid-word.
 
 Example:
 
@@ -38,11 +39,11 @@ Example:
 
 becomes a folder
 
-`1_Hour_of_Natural_Patterns_Ferns_Agate_Sea_Fans_River_Deltas_Rel_y8ONlczgiXA_clips`
+`1_Hour_of_Natural_y8ONlczgiXA_clips`
 
 and files
 
-`1_Hour_of_Natural_Patterns_Ferns_Agate_Sea_Fans_River_Deltas_Rel_y8ONlczgiXA_00-00-00_to_00-00-55.mp4`
+`1_Hour_of_Natural__0h-00-00_to_0h-00-55.mp4`
 
 Running the command again on the **same** file replaces the clips in that folder. A different file that would shorten to the same name gets `_clips_2`.
 
