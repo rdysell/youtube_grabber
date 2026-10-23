@@ -1,8 +1,6 @@
 # Aurora
 
-
 # Flying in the clouds
-
 
 # Abstract fluids
 

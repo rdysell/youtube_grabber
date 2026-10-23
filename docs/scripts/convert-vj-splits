@@ -29,6 +29,10 @@ log() { vj_log "$LOG" "$@"; }
 
 fail() {
   log "FAIL: $*"
+  if [[ -n "${OUT:-}" ]]; then
+    rm -f "$OUT/.source-path"
+    vj_split_clear_source_marker "$OUT"
+  fi
   vj_state_set "$JOB" PHASE "failed"
   vj_state_set "$JOB" CURRENT ""
   vj_print_summary "$JOB" "$LOG" "VJ 55s split"
@@ -78,7 +82,8 @@ remove_temp_files() {
   if [[ "$saved" -eq 0 ]]; then
     shopt -u nullglob
   fi
-  rm -f "$OUT/segments.csv" "$OUT/.segments.keep.csv"
+  rm -f "$OUT/segments.csv" "$OUT/.segments.keep.csv" "$OUT/.source-path"
+  vj_split_clear_source_marker "$OUT"
 }
 
 finalize_files() {
@@ -239,7 +244,7 @@ main() {
   fi
 
   mkdir -p "$OUT" || fail "could not create $OUT"
-  printf '%s\n' "$VIDEO" >"$OUT/.source-path" || fail "could not write $OUT/.source-path"
+  vj_split_set_source_marker "$OUT" "$VIDEO" || fail "could not write split source marker"
   clear_previous_clips
 
   start_ffmpeg &

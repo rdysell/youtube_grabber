@@ -93,13 +93,33 @@ vj_split_stem_for() {
   vj_split_shorten "$stem" "$reserve"
 }
 
+# Sidecar in ~/.cache (not next to clips) so iCloud clip folders stay clean.
+vj_split_source_marker() {
+  local out_dir="$1" cache="${VJ_CACHE:-${HOME}/.cache/yt-dlp}" hash
+  hash=$(printf '%s' "$out_dir" | LC_ALL=C shasum -a 256 | awk '{print $1}')
+  printf '%s\n' "${cache}/split-source-${hash}.path"
+}
+
+vj_split_set_source_marker() {
+  local out_dir="$1" video="$2" marker
+  marker=$(vj_split_source_marker "$out_dir")
+  mkdir -p "${marker%/*}" || return 1
+  printf '%s\n' "$video" >"$marker"
+}
+
+vj_split_clear_source_marker() {
+  local out_dir="$1" marker
+  marker=$(vj_split_source_marker "$out_dir")
+  rm -f "$marker"
+}
+
 # Folder next to the source. Reuse it for the same file; otherwise stem_clips_2, ...
 vj_split_pick_dir() {
   local parent="$1" stem="$2" video="$3"
   local base="${parent}/${stem}_clips"
   local candidate="$base" n=2 marker existing
   while [[ -d "$candidate" ]]; do
-    marker="${candidate}/.source-path"
+    marker=$(vj_split_source_marker "$candidate")
     if [[ ! -f "$marker" ]]; then
       printf '%s\n' "$candidate"
       return 0
