@@ -147,7 +147,7 @@ preview_folder() {
     [[ -n "$key" ]] || continue
     if [[ "$key" != "$prev" ]]; then
       if [[ -n "$prev" ]]; then
-        echo "  ${prev}/  ${nfiles} file(s)"
+        echo "  $(vj_split_group_dir_name "$prev")/  ${nfiles} file(s)"
       fi
       prev=$key
       nfiles=0
@@ -156,7 +156,7 @@ preview_folder() {
     nfiles=$((nfiles + 1))
   done < <(sort "$raw")
   if [[ -n "$prev" ]]; then
-    echo "  ${prev}/  ${nfiles} file(s)"
+    echo "  $(vj_split_group_dir_name "$prev")/  ${nfiles} file(s)"
   fi
   rm -f "$raw"
   echo "Groups:    ${groups} subfolder(s), ${usable} file(s)"
@@ -165,7 +165,7 @@ preview_folder() {
   fi
   echo "Clips:     about ${VJ_SPLIT_SEGMENT_SEC} seconds each"
   echo "Files that share the text before __ share one subfolder."
-  echo "A file with no __ gets its own subfolder, named from that file."
+  echo "A file with no __ gets its own subfolder, named from that file plus the clip length."
   echo "Originals stay in place. Running this again replaces clips in those subfolders."
   echo ""
 }

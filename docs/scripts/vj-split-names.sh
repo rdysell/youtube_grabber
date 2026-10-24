@@ -153,6 +153,12 @@ vj_split_group_key() {
   vj_split_sanitize "$stem"
 }
 
+# Abstract_Liquid at 10 seconds -> Abstract_Liquid_10s
+vj_split_group_dir_name() {
+  local key="$1" sec="${2:-${VJ_SPLIT_SEGMENT_SEC:-55}}"
+  printf '%s_%ss\n' "$key" "$sec"
+}
+
 # 1h-51-53 -> seconds. Empty when the name has no clip span.
 vj_split_stamp_to_sec() {
   local stamp="$1" h m s

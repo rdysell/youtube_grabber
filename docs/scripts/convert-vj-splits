@@ -460,7 +460,7 @@ split_folder() {
     fi
     VIDEO="$file"
     STEM="$key"
-    OUT="${FOLDER_PATH}/${key}"
+    OUT="${FOLDER_PATH}/$(vj_split_group_dir_name "$key")"
     if [[ "$OUT" == "$FOLDER_PATH" || "$file" == "$OUT"/* ]]; then
       log "FAIL: refusing output folder $OUT"
       FILE_FAILED=$((FILE_FAILED + 1))
@@ -474,7 +474,7 @@ split_folder() {
     if [[ "$key" != "$prev" ]]; then
       CLEAR_OUT=1
       prev=$key
-      log "Group: ${key}/"
+      log "Group: $(vj_split_group_dir_name "$key")/"
     else
       CLEAR_OUT=0
     fi
