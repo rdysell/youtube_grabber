@@ -20,11 +20,11 @@ mkdir -p "${HOME}/.cache/yt-dlp"
 log() { vj_log "$LOG" "$@"; }
 
 short_title() {
-  yt-dlp --print "%(title)s" --no-download "$1" 2>/dev/null | head -c 120
+  yt-dlp --ignore-config --print "%(title)s" --no-download "$1" 2>/dev/null | head -c 120
 }
 
 video_id() {
-  yt-dlp --print "%(id)s" --no-download "$1" 2>/dev/null
+  yt-dlp --ignore-config --print "%(id)s" --no-download "$1" 2>/dev/null
 }
 
 is_valid_vj_output() {
