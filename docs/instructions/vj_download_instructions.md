@@ -6,7 +6,7 @@ Clips for Fosfora VJ backgrounds (projector at 1080p; Fosfora scales sources up)
 
 | File | Purpose |
 |------|---------|
-| `docs/1_youtube_links_to_download.md` | URLs still to fetch (per-line notes for clip timing) |
+| `docs/1_youtube_links_to_download.md` | URLs still to fetch (per-line notes for clip timing). Prefix a URL with `#` on the whole line to skip it. |
 | `docs/2_youtube_links_done.md` | Finished items with YouTube title, URL, iCloud path, size, duration |
 
 **Output:** `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube/<group>/`  

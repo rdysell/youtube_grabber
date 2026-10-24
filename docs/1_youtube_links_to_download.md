@@ -1,18 +1,17 @@
 # Aurora
 
 # Flying in the clouds
-https://www.youtube.com/watch?v=1VMI7nffU-Q&list=PPSV
+
+# https://www.youtube.com/watch?v=1VMI7nffU-Q&list=PPSV
+
 https://www.youtube.com/watch?v=YJycfAh3B0o&list=PPSV
 
 # Abstract fluids
 
-https://youtu.be/wjQq0nSGS28?si=fvjIPa2RT00xGC5R
-https://youtu.be/hOgVAYpHPCc?si=yQtaP6aPzqbfN4d_
-https://youtu.be/-KS0QrFHAOU?si=SVVQweqclitD2qZ_
 https://youtu.be/fOcRpAFfuHA?si=oSA6eO-W_TfZ6C5L # Lava lamp
 
 # Abstract tunnels
-https://youtu.be/Ps-0f0K6izM?si=L9CbNBL8ryKGdWBW
+
 https://youtu.be/Ps-0f0K6izM?si=qRDFnA7GUPGYsMld
 
 # Animals
@@ -36,8 +35,8 @@ Only save a loop lenght of 10 seconds, start from 20 sec in.
 
 # Arty
 
-
 # Dancing people
+
 https://youtu.be/9CEnSTruBBg?si=ofqEIV8K4SMEriPF
 https://youtu.be/REPPgPcw4hk?si=YSSsItBa73TgEE3W
 https://youtu.be/q3lX2p_Uy9I?si=Opqs2UjEU1jXIfHk

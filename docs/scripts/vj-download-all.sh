@@ -169,8 +169,13 @@ download_one() {
 
 main() {
   vj_job_acquire_pid "$JOB"
-  local total
-  total=$(grep -cE '^\s*download_one ' "${SCRIPT_DIR}/vj-download-all.sh" || echo 0)
+  local total group url sections
+  if [[ ! -f "$TODO" ]]; then
+    echo "Missing queue file: $TODO" >&2
+    exit 1
+  fi
+  total=$(python3 "${SCRIPT_DIR}/vj-parse-todo.py" "$TODO" | wc -l | tr -d ' ')
+  total=${total:-0}
   vj_state_set "$JOB" TOTAL "$total"
   vj_state_set "$JOB" DONE "0"
   vj_state_set "$JOB" PHASE "starting"
@@ -181,36 +186,16 @@ main() {
   if [[ "${VJ_BACKGROUND:-}" != "1" ]]; then
     vj_print_job_banner "YouTube VJ batch" "make youtube-vj-status" "$LOG"
   fi
-  log "VJ batch download started (${total} items)"
+  log "VJ batch download started (${total} items from ${TODO})"
 
-  # Short section clips first
-  download_one "Woods, Nature and Weather" "https://www.youtube.com/live/bMmPHGJk2hE" "*0:20-0:30" || true
-  download_one "Woods, Nature and Weather" "https://youtu.be/sGkh1W5cbH4" "*0:00-0:10" || true
-  download_one "Woods, Nature and Weather" "https://youtu.be/AsD5u6k6dKI" "*0:00-0:10" || true
-  download_one "Fireplace" "https://youtu.be/FU3ow3wS3PE" "*0:20-0:30" || true
-  download_one "Fireplace" "https://youtu.be/p-zQ5YD7wDc" "*1:00:00-1:00:10" || true
-
-  # Shorter full-length sources
-  download_one "Animals" "https://youtu.be/ak_Gk83ewLY" || true
-  download_one "Space,Universe and stars" "https://youtu.be/7kdJbeM6Ql4" || true
-  download_one "Arty" "https://youtu.be/yx0HzBiaVn4" || true
-  download_one "Abstract fluids" "https://youtu.be/y8ONlczgiXA" || true
-  download_one "Abstract tunnels" "https://youtu.be/QxzU3FBy57k" || true
-
-  # Remaining full-length (long encodes)
-  download_one "Aurora" "https://youtu.be/miqbNFmbN2Q" || true
-  download_one "Flying in the clouds" "https://youtu.be/w1E2zT_kEcw" || true
-  download_one "Abstract fluids" "https://youtu.be/jgm58cbu0kw" || true
-  download_one "Abstract fluids" "https://youtu.be/X5U86C4aXEc" || true
-  download_one "Abstract fluids" "https://youtu.be/wjQq0nSGS28" || true
-  download_one "Abstract fluids" "https://youtu.be/hOgVAYpHPCc" || true
-  download_one "Abstract fluids" "https://youtu.be/-KS0QrFHAOU" || true
-  download_one "Abstract fluids" "https://youtu.be/fOcRpAFfuHA" || true
-  download_one "Abstract tunnels" "https://youtu.be/Ps-0f0K6izM" || true
-  download_one "Woods, Nature and Weather" "https://youtu.be/VKSEG8Xr-RQ" || true
-  download_one "Woods, Nature and Weather" "https://youtu.be/0fjo9ZwpepA" || true
-  download_one "Woods, Nature and Weather" "https://youtu.be/TwXilp2mUtE" || true
-  download_one "Space,Universe and stars" "https://youtu.be/ztVV54sPOns" || true
+  while IFS=$'\t' read -r group url sections; do
+    [[ -n "$url" ]] || continue
+    if [[ -n "$sections" ]]; then
+      download_one "$group" "$url" "$sections" || true
+    else
+      download_one "$group" "$url" || true
+    fi
+  done < <(python3 "${SCRIPT_DIR}/vj-parse-todo.py" "$TODO")
 
   vj_state_set "$JOB" PHASE "finished"
   vj_state_set "$JOB" CURRENT ""
