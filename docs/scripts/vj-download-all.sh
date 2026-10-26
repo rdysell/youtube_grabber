@@ -212,7 +212,9 @@ main() {
   fi
   queue_file=$(mktemp "${TMPDIR:-/tmp}/vj-youtube-queue.XXXXXX")
   python3 "${SCRIPT_DIR}/vj-parse-todo.py" "$TODO" >"$queue_file"
-  mapfile -t queue_lines <"$queue_file"
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    queue_lines+=("$line")
+  done <"$queue_file"
   total=${#queue_lines[@]}
   vj_state_set "$JOB" TOTAL "$total"
   vj_state_set "$JOB" DONE "0"

@@ -35,5 +35,9 @@ if running=$(vj_job_running_pid "$JOB" 2>/dev/null); then
   echo "  Tip:    this terminal is free; use ${STATUS_MAKE} anytime."
 else
   echo "${JOB}: failed to start. Check ${VJ_CACHE}/${JOB}.nohup.out and ${LOG}" >&2
+  if [[ -f "${VJ_CACHE}/${JOB}.nohup.out" ]]; then
+    echo "  --- last lines of nohup ---" >&2
+    tail -5 "${VJ_CACHE}/${JOB}.nohup.out" | sed 's/^/    /' >&2
+  fi
   exit 1
 fi
