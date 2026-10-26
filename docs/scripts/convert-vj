@@ -9,11 +9,12 @@ source "${SCRIPT_DIR}/vj-job-common.sh"
 source "${SCRIPT_DIR}/vj-limits.sh"
 # shellcheck source=vj-filename.sh
 source "${SCRIPT_DIR}/vj-filename.sh"
+# shellcheck source=vj-paths.sh
+source "${SCRIPT_DIR}/vj-paths.sh"
 
-ICLOUD="${HOME}/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies"
-INBOX="${ICLOUD}/Convert_these_media_files"
-OUTBOX="${ICLOUD}/Converted_media_files"
-ARCHIVE="${ICLOUD}/Converted_source_files"
+INBOX="${VJ_CONVERT_INBOX}"
+OUTBOX="${VJ_CONVERT_OUTBOX}"
+ARCHIVE="${VJ_CONVERT_ARCHIVE}"
 CACHE="${VJ_CACHE}"
 LOG="${CACHE}/convert-vj.log"
 JOB=convert-vj

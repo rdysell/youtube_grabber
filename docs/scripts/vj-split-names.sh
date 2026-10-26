@@ -240,7 +240,7 @@ vj_split_folder_stem() {
   fi
 }
 
-# Sidecar in ~/.cache (not next to clips) so iCloud clip folders stay clean.
+# Sidecar in ~/.cache (not next to clips) so clip folders on disk stay clean.
 vj_split_source_marker() {
   local out_dir="$1" cache="${VJ_CACHE:-${HOME}/.cache/yt-dlp}" hash
   hash=$(printf '%s' "$out_dir" | LC_ALL=C shasum -a 256 | awk '{print $1}')

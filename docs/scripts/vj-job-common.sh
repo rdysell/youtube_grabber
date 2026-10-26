@@ -249,18 +249,52 @@ vj_bump_done() {
   fi
 }
 
+# Drop yt-dlp / encode leftovers in VJ_CACHE (keeps logs, state, pid, split-source markers).
+vj_cleanup_cache_scrap() {
+  local logfile="${1:-}" cache="$VJ_CACHE" f removed=0 pf pid
+  [[ -d "$cache" ]] || return 0
+
+  for pf in "$cache"/youtube-vj.pid "$cache"/convert-vj.pid "$cache"/convert-vj-splits.pid; do
+    [[ -f "$pf" ]] || continue
+    pid=$(tr -d '[:space:]' <"$pf" 2>/dev/null || true)
+    if [[ -n "$pid" && "$pid" != "$$" ]] && kill -0 "$pid" 2>/dev/null; then
+      return 0
+    fi
+  done
+
+  while IFS= read -r -d '' f; do
+    rm -f "$f" && removed=$((removed + 1))
+  done < <(find "$cache" -maxdepth 1 -type f \( \
+    -name '*.part' -o -name '*.ytdl' -o -name '*.temp' -o -name '*.tmp' -o -name '*.frag' \
+    -o -name '*.mp4' -o -name '*.mkv' -o -name '*.webm' -o -name '*.m4a' -o -name '*.mov' \
+    \) ! -name '*.log' -print0 2>/dev/null)
+
+  if [[ "$removed" -gt 0 && -n "$logfile" ]]; then
+    vj_log "$logfile" "Cache cleanup: removed ${removed} scrap file(s) from ${cache}"
+  fi
+}
+
 # Short CLI report when a job finishes or is stopped (printed to stdout).
 vj_print_summary() {
   local job="$1" log="$2" title="$3"
-  local total done phase pct fails remain
+  local total done phase pct fails remain ok skip never
 
   total=$(vj_state_get "$job" TOTAL)
   done=$(vj_state_get "$job" DONE)
   phase=$(vj_state_get "$job" PHASE)
   fails=0
+  ok=0
+  skip=0
+  never=0
   if [[ -f "$log" ]]; then
-    fails=$(grep -cE '\] FAIL |^FAIL ' "$log" 2>/dev/null || true)
+    fails=$(grep -cE '\] FAIL ' "$log" 2>/dev/null || true)
+    ok=$(grep -cE '\] OK \[' "$log" 2>/dev/null || true)
+    skip=$(grep -cE '\] SKIP ' "$log" 2>/dev/null || true)
+    never=$(grep -cE '\] FAIL never started ' "$log" 2>/dev/null || true)
     fails=${fails:-0}
+    ok=${ok:-0}
+    skip=${skip:-0}
+    never=${never:-0}
   fi
 
   {
@@ -278,17 +312,21 @@ vj_print_summary() {
         pct=$((done * 100 / total))
         echo "  Progress: ${done}/${total} items (${pct}%)"
         remain=$((total - done))
+        echo "  Log:      OK=${ok} SKIP=${skip} FAIL=${fails}"
+        if [[ "$never" -gt 0 ]]; then
+          echo "  Never started: ${never} (see FAIL never started lines)"
+        fi
         if [[ "$remain" -gt 0 ]]; then
-          echo "  Skipped:  ${remain} item(s) failed or not completed"
+          echo "  Remaining: ${remain} item(s) not counted done (failed or not finished)"
         fi
       else
         echo "  Progress: 0 items in queue"
       fi
     fi
     if [[ "$fails" -gt 0 ]]; then
-      echo "  Failures: ${fails} (see log)"
+      echo "  Failures: ${fails} (grep FAIL in log)"
     fi
-    echo "  Log:      ${log}"
+    echo "  Log file: ${log}"
     echo "  Status:   make ${job}-status"
     echo "────────────────────────────"
     echo ""
@@ -299,4 +337,8 @@ vj_print_summary() {
       cat >>"$log"
     fi
   }
+
+  if [[ "$phase" == "finished" && "$fails" -eq 0 && "$never" -eq 0 ]]; then
+    vj_cleanup_cache_scrap "$log"
+  fi
 }

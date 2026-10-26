@@ -7,9 +7,9 @@ Clips for Fosfora VJ backgrounds (projector at 1080p; Fosfora scales sources up)
 | File | Purpose |
 |------|---------|
 | `docs/1_youtube_links_to_download.md` | URLs still to fetch (per-line notes for clip timing). Prefix a URL with `#` on the whole line to skip it. |
-| `docs/2_youtube_links_done.md` | Finished items with YouTube title, URL, iCloud path, size, duration |
+| `docs/2_youtube_links_done.md` | Finished items with YouTube title, URL, Elephant path, size, duration |
 
-**Output:** `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube/<group>/`  
+**Output:** `/Volumes/Elephant/VJ/YouTube/<group>/`  
 `<group>` is the `# Heading` in the queue (e.g. `Abstract fluids`).
 
 **Filenames:** ASCII-only, underscores, no emoji or `｜` / `⧸` —  
@@ -53,7 +53,7 @@ Safe to re-run if the Mac sleeps or the job stops.
 | Frame rate | **≤24 fps** (15 fps sources stay 15; 30/60 → 24) |
 | Length | **Full video** unless the queue asks for a section (trim to 6–10 s loops in Fosfora later) |
 
-yt-dlp: video only, max 720p (`~/.config/yt-dlp/config`). Encode runs automatically after each file moves to iCloud. Long sources take a long time to encode on the iMac.
+yt-dlp: video only, max 720p (`~/.config/yt-dlp/config`). Encode runs automatically after each download lands on Elephant (`~/.config/yt-dlp/config`). Long sources take a long time to encode on the iMac.
 
 **Why 720p:** ~2.25× less memory than 1080p for little visible gain on this projector. Target loops: **6–10 s at 15–24 fps** (~0.3–0.8 GB unpacked per loop; two loops on screen is the design budget). Hard limits in app: ~24 s @ 24 fps / ~39 s @ 15 fps at 720p—still prefer 6–10 s.
 
@@ -63,7 +63,7 @@ Pass range on the **command**, not in global config:
 
 ```sh
 yt-dlp --download-sections "*0:20-0:30" --force-keyframes-at-cuts \
-  -P "$HOME/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube/Fireplace" \
+  -P "/Volumes/Elephant/VJ/YouTube/Fireplace" \
   "https://youtu.be/qeWLeTQAjzU"
 ```
 
@@ -84,6 +84,6 @@ Local files (not YouTube): see [convert_to_vj_format_instructions.md](./convert_
 Same as config defaults; set `-P` to the group folder:
 
 ```sh
-yt-dlp -P "$HOME/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube/Aurora" \
+yt-dlp -P "/Volumes/Elephant/VJ/YouTube/Aurora" \
   "https://youtu.be/miqbNFmbN2Q"
 ```

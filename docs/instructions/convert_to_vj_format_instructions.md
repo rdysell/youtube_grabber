@@ -2,13 +2,13 @@
 
 Same end result as [vj_download_instructions.md](./vj_download_instructions.md): **1280×720**, 16:9 (pad, no stretch), **H.264** MP4, **no audio**, **≤24 fps** (15 fps kept; higher capped at 24). Full length preserved.
 
-## Folders (iCloud)
+## Folders (Elephant — local disk, not iCloud)
 
 | Folder | Role |
 |--------|------|
-| `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/Convert_these_media_files` | **Inbox** — drop videos here (subfolders OK) |
-| `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/Converted_media_files` | **Output** — VJ-ready MP4s (flat) |
-| `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/Converted_source_files` | **Archive** — original file after successful convert (flat) |
+| `/Volumes/Elephant/VJ/Convert_these_media_files` | **Inbox** — drop videos here (subfolders OK) |
+| `/Volumes/Elephant/VJ/Converted_media_files` | **Output** — VJ-ready MP4s (flat) |
+| `/Volumes/Elephant/VJ/Converted_source_files` | **Archive** — original file after successful convert (flat) |
 
 ## Run
 

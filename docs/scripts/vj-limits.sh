@@ -54,5 +54,5 @@ vj_run_cpu_limited() {
 vj_run_ffmpeg() {
   local threads
   threads=$(vj_ffmpeg_threads)
-  vj_run_cpu_limited ffmpeg -hide_banner -loglevel error -threads "$threads" "$@"
+  vj_run_cpu_limited ffmpeg -nostdin -hide_banner -loglevel error -threads "$threads" "$@"
 }

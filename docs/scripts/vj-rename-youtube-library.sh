@@ -6,7 +6,9 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 # shellcheck source=vj-filename.sh
 source "${SCRIPT_DIR}/vj-filename.sh"
 
-BASE="${HOME}/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube"
+# shellcheck source=vj-paths.sh
+source "${SCRIPT_DIR}/vj-paths.sh"
+BASE="${VJ_YOUTUBE}"
 DONE="${SCRIPT_DIR}/../../docs/2_youtube_links_done.md"
 
 renamed=0

@@ -5,9 +5,11 @@ set -euo pipefail
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 # shellcheck source=vj-filename.sh
 source "${SCRIPT_DIR}/vj-filename.sh"
+# shellcheck source=vj-paths.sh
+source "${SCRIPT_DIR}/vj-paths.sh"
 
 DONE="${SCRIPT_DIR}/../../docs/2_youtube_links_done.md"
-BASE="${HOME}/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube"
+BASE="${VJ_YOUTUBE}"
 
 python3 - "$DONE" "$BASE" <<'PY'
 import re, sys

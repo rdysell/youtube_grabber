@@ -7,8 +7,10 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 source "${SCRIPT_DIR}/vj-job-common.sh"
 # shellcheck source=vj-filename.sh
 source "${SCRIPT_DIR}/vj-filename.sh"
+# shellcheck source=vj-paths.sh
+source "${SCRIPT_DIR}/vj-paths.sh"
 
-BASE="/Users/dysell/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube"
+BASE="${VJ_YOUTUBE}"
 LOG="${VJ_CACHE}/vj-batch.log"
 REPO=$(cd "${SCRIPT_DIR}/../.." && pwd)
 JOB=youtube-vj
@@ -97,7 +99,7 @@ download_one() {
 
   id=$(video_id "$url")
   if [[ -z "$id" ]]; then
-    log "SKIP (no id): $url"
+    log "FAIL (no video id) [$group] $url"
     return 1
   fi
 
@@ -167,15 +169,51 @@ download_one() {
   download_one_return 0
 }
 
+log_batch_audit() {
+  local queue_file="$1" total="$2"
+  local ok skip fail started never
+  ok=$(grep -cE '\] OK \[' "$LOG" 2>/dev/null || true)
+  skip=$(grep -cE '\] SKIP ' "$LOG" 2>/dev/null || true)
+  fail=$(grep -cE '\] FAIL ' "$LOG" 2>/dev/null || true)
+  started=$(grep -cE '\] START \[' "$LOG" 2>/dev/null || true)
+  ok=${ok:-0}
+  skip=${skip:-0}
+  fail=${fail:-0}
+  started=${started:-0}
+  never=0
+  log "Batch counts: OK=${ok} SKIP=${skip} FAIL=${fail} START=${started} (queue=${total})"
+
+  while IFS=$'\t' read -r group url _sections; do
+    [[ -n "$url" ]] || continue
+    if grep -qF "$url" "$LOG" 2>/dev/null; then
+      continue
+    fi
+    local audit_id
+    audit_id=$(video_id "$url")
+    if [[ -n "$audit_id" ]] && grep -qF "id=${audit_id}" "$LOG" 2>/dev/null; then
+      continue
+    fi
+    never=$((never + 1))
+    log "FAIL never started [$group] $url"
+  done <"$queue_file"
+
+  if [[ "$never" -gt 0 ]]; then
+    log "FAIL audit: ${never} queue item(s) had no log line (batch bug or early exit)"
+  fi
+}
+
 main() {
   vj_job_acquire_pid "$JOB"
-  local total group url sections
+  local total group url sections queue_file
+  local -a queue_lines=()
   if [[ ! -f "$TODO" ]]; then
     echo "Missing queue file: $TODO" >&2
     exit 1
   fi
-  total=$(python3 "${SCRIPT_DIR}/vj-parse-todo.py" "$TODO" | wc -l | tr -d ' ')
-  total=${total:-0}
+  queue_file=$(mktemp "${TMPDIR:-/tmp}/vj-youtube-queue.XXXXXX")
+  python3 "${SCRIPT_DIR}/vj-parse-todo.py" "$TODO" >"$queue_file"
+  mapfile -t queue_lines <"$queue_file"
+  total=${#queue_lines[@]}
   vj_state_set "$JOB" TOTAL "$total"
   vj_state_set "$JOB" DONE "0"
   vj_state_set "$JOB" PHASE "starting"
@@ -188,14 +226,19 @@ main() {
   fi
   log "VJ batch download started (${total} items from ${TODO})"
 
-  while IFS=$'\t' read -r group url sections; do
+  for line in "${queue_lines[@]}"; do
+    [[ -n "$line" ]] || continue
+    IFS=$'\t' read -r group url sections <<<"$line"
     [[ -n "$url" ]] || continue
     if [[ -n "$sections" ]]; then
       download_one "$group" "$url" "$sections" || true
     else
       download_one "$group" "$url" || true
     fi
-  done < <(python3 "${SCRIPT_DIR}/vj-parse-todo.py" "$TODO")
+  done
+
+  log_batch_audit "$queue_file" "$total"
+  rm -f "$queue_file"
 
   vj_state_set "$JOB" PHASE "finished"
   vj_state_set "$JOB" CURRENT ""

@@ -13,6 +13,8 @@ fi
 mkdir -p "${HOME}/.config/yt-dlp"
 cp -f "${SCRIPT_DIR}/vj-limits.sh" "${HOME}/.config/yt-dlp/vj-limits.sh"
 cp -f "${SCRIPT_DIR}/vj-filename.sh" "${HOME}/.config/yt-dlp/vj-filename.sh"
+cp -f "${SCRIPT_DIR}/vj-720.sh" "${HOME}/.config/yt-dlp/vj-720.sh"
+chmod +x "${HOME}/.config/yt-dlp/vj-720.sh"
 
 vj_apply_shell_limits
 vj_warn_if_no_cpulimit

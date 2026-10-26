@@ -12,7 +12,7 @@ Run everything from the **repo root** (`youtube_grabber/`).
 | `make youtube-vj-stop-next`                  | Finish **current** item, then stop                       |
 | `make youtube-vj-restart-next`               | Stop after current item, wait, then **start** (reload scripts) |
 
-- **Output:** `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/YouTube/<group>/`
+- **Output:** `/Volumes/Elephant/VJ/YouTube/<group>/`
 - **Names:** `Short_Title_VIDEO_ID_1280x720_vj.mp4` (ASCII, underscores). Rename an existing library: `docs/scripts/vj-rename-youtube-library.sh`. Refresh paths in the done list: `docs/scripts/vj-sync-done-paths.sh`.
 - **Log:** `~/.cache/yt-dlp/vj-batch.log`
 - **State:** `~/.cache/yt-dlp/youtube-vj.{pid,state}`
@@ -32,9 +32,9 @@ Safe to re-run; skips files already on disk. Only **one** `make youtube-vj` at a
 
 | Folder                                                                               | Role                    |
 | ------------------------------------------------------------------------------------ | ----------------------- |
-| `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/Convert_these_media_files` | Inbox (drop files here) |
-| `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/Converted_media_files`     | VJ-ready output         |
-| `~/Library/Mobile Documents/com~apple~CloudDocs/VJ-Movies/Converted_source_files`    | Originals after success |
+| `/Volumes/Elephant/VJ/Convert_these_media_files` | Inbox (drop files here) |
+| `/Volumes/Elephant/VJ/Converted_media_files`     | VJ-ready output         |
+| `/Volumes/Elephant/VJ/Converted_source_files`    | Originals after success |
 
 - **Log:** `~/.cache/yt-dlp/convert-vj.log`
 - **State:** `~/.cache/yt-dlp/convert-vj.{pid,state}`
@@ -89,7 +89,9 @@ Tunables: `docs/scripts/vj-limits.sh` (copied to `~/.config/yt-dlp/vj-limits.sh`
 - **OK together:** `make youtube-vj` while `make convert-vj` is fine if load is acceptable; never two `youtube-vj` runs. `make convert-vj-splits` is a stream copy (lighter than an encode) and can run beside them; still only one splits job at a time.
 - **After `git pull`:** `make youtube-vj-restart-next` or `make convert-vj-restart-next` reloads scripts without killing a long encode mid-file.
 - **Progress %** = items done in the **current** run (not ffmpeg % inside one long file). For splits, one item is one clip.
+- **Cache:** When a job finishes with **Result: completed** and no `FAIL` lines in the log, leftover media in `~/.cache/yt-dlp` (yt-dlp temps, encode `.mp4`s) is removed; logs, state, and split markers stay.
 - **Scripts:** `docs/scripts/` (`vj-download-all.sh`, `convert-vj`, `convert-vj-splits`, status/stop helpers).
+- **Paths:** canonical root is `/Volumes/Elephant/VJ` (`docs/scripts/vj-paths.sh`). Check for old path strings: `docs/scripts/vj-check-stale-paths.sh`.
 
 ## Output spec (youtube-vj and convert-vj)
 

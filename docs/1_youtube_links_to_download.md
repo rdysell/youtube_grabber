@@ -4,7 +4,6 @@
 
 # https://www.youtube.com/watch?v=1VMI7nffU-Q&list=PPSV
 
-https://www.youtube.com/watch?v=YJycfAh3B0o&list=PPSV
 
 # Abstract fluids
 
