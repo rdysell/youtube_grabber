@@ -2,16 +2,17 @@
 
 # Flying in the clouds
 
-# https://www.youtube.com/watch?v=1VMI7nffU-Q&list=PPSV
+# https://www.youtube.com/watch?v=1VMI7nffU-Q&list=PPSV # Only 30 sec is enough, starting from 1 min in
 
+https://www.youtube.com/watch?v=YJycfAh3B0o&list=PPSV # Only 30 sec is enough, starting from 1 min in
 
 # Abstract fluids
 
-https://youtu.be/fOcRpAFfuHA?si=oSA6eO-W_TfZ6C5L # Lava lamp
+https://youtu.be/fOcRpAFfuHA?si=oSA6eO-W_TfZ6C5L # Lava lamp - Only 30 sec is enough, starting from 1 min in
 
 # Abstract tunnels
 
-https://youtu.be/Ps-0f0K6izM?si=qRDFnA7GUPGYsMld
+https://youtu.be/Ps-0f0K6izM?si=qRDFnA7GUPGYsMld # Only 30 sec is enough, starting from 1 min in
 
 # Animals
 
@@ -24,7 +25,7 @@ https://youtu.be/TwXilp2mUtE?si=N0cHquk5zeVH9nPy # mountains drone photage
 
 # Space,Universe and stars
 
-https://youtu.be/ztVV54sPOns?si=Wjf-5stnNlWTR1tw
+https://youtu.be/ztVV54sPOns?si=Wjf-5stnNlWTR1tw # Only 30 sec is enough, starting from 1 min in
 
 # Hippie, Spiritual and India
 
