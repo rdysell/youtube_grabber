@@ -107,3 +107,81 @@
   - Path: `/Volumes/Elephant/VJ/YouTube/Flying in the clouds/Flying_Above_Clouds_with_Wind_Blowing_Sound_-_Cloud_Ambience_for_YJycfAh3B0o_1280x720_vj.mp4`
   - duration=14400.000000 size=1.3GiB
 
+- **Sunset Orange Lava Lamp 4K Screensaver | Relaxing TV Background + Brown Noise**
+  - URL: https://youtu.be/fOcRpAFfuHA?si=oSA6eO-W_TfZ6C5L
+  - Path: `/Volumes/Elephant/VJ/YouTube/Abstract fluids/Sunset_Orange_Lava_Lamp_4K_Screensaver_Relaxing_TV_Background_Br_fOcRpAFfuHA_1280x720_vj.mp4`
+  - duration=7154.791667 size=557MiB
+
+- **VJ LOOP NEON Pink Purple Abstract Background Video Simple Lines Pattern - Motion 4k Screensaver**
+  - URL: https://youtu.be/Ps-0f0K6izM?si=qRDFnA7GUPGYsMld
+  - Path: `/Volumes/Elephant/VJ/YouTube/Abstract tunnels/VJ_LOOP_NEON_Pink_Purple_Abstract_Background_Video_Simple_Lines_Ps-0f0K6izM_1280x720_vj.mp4`
+  - duration=10666.666667 size=4.1GiB
+
+- **Relaxing Nature 4K | 2 hours Handpan Meditation | Malte Marten & Changeofcolours**
+  - URL: https://youtu.be/VKSEG8Xr-RQ?si=ryA7Kkb5RspAT_v-
+  - Path: `/Volumes/Elephant/VJ/YouTube/Woods, Nature and Weather/Relaxing_Nature_4K_2_hours_Handpan_Meditation_Malte_Marten_Chang_VKSEG8Xr-RQ_1280x720_vj.mp4`
+  - duration=10.000000 size=530KiB
+
+- **Sound Bath in the Forest 432Hz | Serene Forest Accompanied by Gentle Ambient Tones**
+  - URL: https://youtu.be/0fjo9ZwpepA?si=SyHfSLjNTIYByTx7
+  - Path: `/Volumes/Elephant/VJ/YouTube/Woods, Nature and Weather/Sound_Bath_in_the_Forest_432Hz_Serene_Forest_Accompanied_by_Gent_0fjo9ZwpepA_1280x720_vj.mp4`
+  - duration=5024.541667 size=2.8GiB
+
+- **Beautiful Relaxing Music for Stress Relief • Meditation Music, Sleep Music, Ambient Study Music**
+  - URL: https://youtu.be/TwXilp2mUtE?si=N0cHquk5zeVH9nPy
+  - Path: `/Volumes/Elephant/VJ/YouTube/Woods, Nature and Weather/Beautiful_Relaxing_Music_for_Stress_Relief_Meditation_Music_Slee_TwXilp2mUtE_1280x720_vj.mp4`
+  - duration=11203.125000 size=4.7GiB
+
+- **Travel the Universe While Relaxation ★ Space Ambient Music**
+  - URL: https://youtu.be/ztVV54sPOns?si=Wjf-5stnNlWTR1tw
+  - Path: `/Volumes/Elephant/VJ/YouTube/Space,Universe and stars/Travel_the_Universe_While_Relaxation_Space_Ambient_Music_ztVV54sPOns_1280x720_vj.mp4`
+  - duration=10591.791667 size=2.0GiB
+
+
+# Dancing people
+
+- **Dance of the Moon ✴ Ecstatic Dance with Sophie Sôfrēē, Mana Mei & Layla El Khadri**
+  - URL: https://youtu.be/9CEnSTruBBg?si=ofqEIV8K4SMEriPF
+  - Path: `/Volumes/Elephant/VJ/YouTube/Dancing people/Dance_of_the_Moon_Ecstatic_Dance_with_Sophie_Sôfrēē_Mana_Mei_Lay_9CEnSTruBBg_1280x720_vj.mp4`
+  - duration=2625.458333 size=734MiB
+
+- **CDK - Somebody That I Used To Know by Gotye**
+  - URL: https://youtu.be/REPPgPcw4hk?si=YSSsItBa73TgEE3W
+  - Path: `/Volumes/Elephant/VJ/YouTube/Dancing people/CDK_-_Somebody_That_I_Used_To_Know_by_Gotye_REPPgPcw4hk_1280x720_vj.mp4`
+  - duration=230.875000 size=114MiB
+
+- **Jungle - Back On 74 (Official Video)**
+  - URL: https://youtu.be/q3lX2p_Uy9I?si=Opqs2UjEU1jXIfHk
+  - Path: `/Volumes/Elephant/VJ/YouTube/Dancing people/Jungle_-_Back_On_74_Official_Video_q3lX2p_Uy9I_1280x720_vj.mp4`
+  - duration=240.375000 size=96MiB
+
+- **CDK - Bittersuite by Billie Eilish**
+  - URL: https://youtu.be/9l54Rm8evbk?si=miutVLGCk9MQ043-
+  - Path: `/Volumes/Elephant/VJ/YouTube/Dancing people/CDK_-_Bittersuite_by_Billie_Eilish_9l54Rm8evbk_1280x720_vj.mp4`
+  - duration=166.375000 size=57MiB
+
+- **Radha Krishna Divine Garden Dance 🌸💖 | Beautiful Vrindavan Leela | Krishna Flute Music**
+  - URL: https://www.youtube.com/shorts/-07RTnbT0-Q
+  - Path: `/Volumes/Elephant/VJ/YouTube/Dancing people/Radha_Krishna_Divine_Garden_Dance_Beautiful_Vrindavan_Leela_Kris_-07RTnbT0-Q_1280x720_vj.mp4`
+  - duration=10.000000 size=2.7MiB
+
+- **Mose - Cacao Dance @ Eagles Nest Atitlán**
+  - URL: https://youtu.be/wKI-ngRQJ90?si=Qkjl6HgC1FRp-Y26
+  - Path: `/Volumes/Elephant/VJ/YouTube/Dancing people/Mose_-_Cacao_Dance_Eagles_Nest_Atitlán_wKI-ngRQJ90_1280x720_vj.mp4`
+  - duration=8297.747792 size=3.5GiB
+
+- **ANCESTRALL - Ecstatic Dance Ericeira**
+  - URL: https://youtu.be/7MTErnXnhNY?si=Ipsdp7CJ6ISBRgBH
+  - Path: `/Volumes/Elephant/VJ/YouTube/Dancing people/ANCESTRALL_-_Ecstatic_Dance_Ericeira_7MTErnXnhNY_1280x720_vj.mp4`
+  - duration=7842.625000 size=5.8GiB
+
+- **Live Ecstatic Dance - Janax Pacha @ Agape Zoe Festival [Downtempo, Organic House, AfroHouse, Ethnic]**
+  - URL: https://youtu.be/0_R6MR9ZQDo?si=_Dm3gfq-y4RbHQKA
+  - Path: `/Volumes/Elephant/VJ/YouTube/Dancing people/Live_Ecstatic_Dance_-_Janax_Pacha_Agape_Zoe_Festival_0_R6MR9ZQDo_1280x720_vj.mp4`
+  - duration=7561.208333 size=3.3GiB
+
+- **Ecstatic Dance - Short Documentary  (Subtitles Available)**
+  - URL: https://youtu.be/lY41coxPKuY?si=Z9nF1AQU42DGo3s9
+  - Path: `/Volumes/Elephant/VJ/YouTube/Dancing people/Ecstatic_Dance_-_Short_Documentary_Subtitles_Available_lY41coxPKuY_1280x720_vj.mp4`
+  - duration=746.666667 size=316MiB
+
