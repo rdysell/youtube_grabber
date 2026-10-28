@@ -7,7 +7,7 @@ Same end result as [vj_download_instructions.md](./vj_download_instructions.md):
 | Folder | Role |
 |--------|------|
 | `/Volumes/Elephant/VJ/Convert_these_media_files` | **Inbox** — drop videos here (subfolders OK) |
-| `/Volumes/Elephant/VJ/Converted_media_files` | **Output** — VJ-ready MP4s (flat) |
+| `/Volumes/Elephant/VJ/Converted_media_files` | **Output** — VJ-ready MP4s in **subfolders** (one folder per movie / clip group) |
 | `/Volumes/Elephant/VJ/Converted_source_files` | **Archive** — original file after successful convert (flat) |
 
 ## Run
@@ -34,10 +34,11 @@ Safe to re-run: skips work when a valid output already exists (see below).
 ## What the script does
 
 1. Finds all videos under the inbox (recursive).
-2. For each file, builds an output name and writes to **Converted_media_files**:
-   - `Baraka.1992.1080p.BluRay.H264.AAC-RARBG.mp4` → `Baraka_1992_1280x720_vj.mp4`
+2. For each file, builds an output name and writes under **Converted_media_files/**`<movie>/`**:
+   - `Baraka.1992.1080p.BluRay.H264.AAC-RARBG.mp4` → `Baraka_1992/Baraka_1992_1280x720_vj.mp4`
+   - Split clips (e.g. in `…_clips/` or names with `_00-01-02_to_…`) → same movie folder, one VJ file per clip.
    - Title = first dot-separated segment; year = first `YYYY` in the name; dots → `_`.
-3. **Skip encode** if `Converted_media_files/<that name>` already exists and ffprobe shows 1280×720, H.264, no audio.
+3. **Skip encode** if a valid VJ file already exists in that movie folder (or legacy flat path in **Converted_media_files**).
 4. Otherwise ffmpeg encodes (same filter as `~/.config/yt-dlp/vj-720.sh`).
 5. On success, **moves** the source into **Converted_source_files** (flat, no subfolders), renamed and shortened if needed:
    - `Koyaanisqatsi.1982.REMASTERED.1080p.BluRay.H264.AAC-LAMA.mp4` →  
@@ -52,7 +53,9 @@ Name collisions in output or archive get `_2`, `_3`, …
 
 1. Copy the file(s) into **Convert_these_media_files**.
 2. Run `make convert-vj` (or ask an agent to run the script).
-3. Use clips from **Converted_media_files**; originals sit in **Converted_source_files**.
+3. Use clips from **Converted_media_files** (inside each movie subfolder); originals sit in **Converted_source_files**.
+
+To group **existing** flat outputs: `docs/scripts/vj-organize-converted-outbox.sh`.
 
 Requires `ffmpeg` and `ffprobe` on the PATH.
 

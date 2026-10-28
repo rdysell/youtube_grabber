@@ -33,14 +33,16 @@ Safe to re-run; skips files already on disk. Only **one** `make youtube-vj` at a
 | Folder                                                                               | Role                    |
 | ------------------------------------------------------------------------------------ | ----------------------- |
 | `/Volumes/Elephant/VJ/Convert_these_media_files` | Inbox (drop files here) |
-| `/Volumes/Elephant/VJ/Converted_media_files`     | VJ-ready output         |
+| `/Volumes/Elephant/VJ/Converted_media_files`     | VJ-ready output (one **subfolder per movie** / clip group)         |
 | `/Volumes/Elephant/VJ/Converted_source_files`    | Originals after success |
 
 - **Log:** `~/.cache/yt-dlp/convert-vj.log`
 - **State:** `~/.cache/yt-dlp/convert-vj.{pid,state}`
 - **Details:** [docs/instructions/convert_to_vj_format_instructions.md](docs/instructions/convert_to_vj_format_instructions.md)
 
-Safe to re-run; skips when a valid output already exists. **Starts in the background** like YouTube batch. Use `make convert-vj-status` for progress.
+Safe to re-run; skips when a valid output already exists (checks the movie subfolder and legacy flat paths). **Starts in the background** like YouTube batch. Use `make convert-vj-status` for progress.
+
+**Existing flat files:** `docs/scripts/vj-organize-converted-outbox.sh` moves root-level `*_1280x720_vj.mp4` files into matching subfolders.
 
 ## Split a video or a folder into clips (default 55 seconds)
 
